@@ -1,8 +1,15 @@
+# What is this for?
+
+`YADA - Yet Another Duplicate Annihilator`, is a GUI program for finding duplicate files and removing them.   
+Do you have thousands of files scattered throughout your hard drive and can't tell which ones you have copied five times over? This is a tool for finding that.
+Given no existing software provided interface or performance I would like, I decided to create my own.  
+
+
 # How to use:
 
 ## 1. Disable immediate file removal in windows
 **Go to recycle bin settings and make sure the setting 
-"Don't move files to Recycle Bin. Remove files immediatelly when deleted."
+"Don't move files to Recycle Bin. Remove files immediately when deleted."
 is DISABLED.**
 
 **I OFFER NO FILE RECOVERY ASSISTANCE IF YOU DELETE SOMETHING IMPORTANT ON ACCIDENT.

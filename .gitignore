@@ -1,0 +1,19 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/DuplicateFinder/bin
+/DuplicateFinder/obj
+/DuplicateFinder/DuplicateFinder.csproj.user
+/Engine/bin
+/Engine/obj
+/huge ui test data
+/packages/CodeFluentRuntimeClient.1.0.0.805
+/Test/.vs
+/Test/bin
+/Test/obj
+/Test/test data
+/Test/TestDataRestricted
+/Test/Test.csproj.user
+/DuplicateFinder.v11.suo

@@ -1,0 +1,89 @@
+make cache read last modified date too
+
+1. IMPORTANT change background worker to thread
+2. stop trashing/reading disk when iddle
+
+improvement - rightclicking on group header brings menu to open all item folders
+
+new feature - on rightclick on file -> merge all here -> 1. deletes duplicates from other folders (both duplicates of this file and other files in same folder). 2. moves all files from other folders to the folder containing current file. 0. Display warning if there are more duplicate sets within same folder, like "folder contains X duplicates found in other folders (list folders), this will merge all the folders onto this one, continue?"
+
+add file timestamp to cache(!)
+
+
+
+feature: add selecting by string, eg ability to search folder xyz for deletion
+make bottom panels resize with window (keep/trash sections)
+feature - show image previev on hover - hold alt?
+
+split deletion into separate thread - worker keeps getting busy/refreshing
+todo: stop refreshing (timer) when paused
+
+add actions: remove duplicate folder
+
+Is pending refresh - to fix background worker busy -> use observable collection
+
+autoselect:
+- same folder
+- long short path
+- identical folders
+- larger folder
+
+
+
+bug: crashes when file to hah is in use
+bug: hangs when using delete marked ater mark duplicates in folder on big datasets [takes very long to process but recovers?]
+
+feat: marking folders with same filecount
+
+after deleting/listing done - say folder name in message to see if it was current folder or prev one
+do not redraw list during deleting (folder count!)
+
+
+
+UI
+check electron js, windows presentation foundation, universal windows platform.
+
+change count folder files to be refreshed when opts saved
+
+hangs on removal:
+search for a lot
+use mark trashed
+delete manyally one of reds -. hangs
+
+
+show marked count!
+
+io.exception - when encountered show warning and drop the file from list!
+
+
+
+gets stuck when deduping bigger folder - why?
+
+show marked for deletion count
+
+
+ui polling the current status.
+
+use dict instead of list.
+why does it read HDD while sorting??
+
+
+
+delete empty folders tool?
+
+
+
+smaller compact view for deletion list?
+
+ut - create the restricted files programmatically
+
+
+need program icon
+
+
+TEST
+doubleclick exception when no app associated (no extension) [works]?
+crash when file has no extension [same error as above - ui exception for no app associated]
+
+
+
