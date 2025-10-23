@@ -1,11 +1,12 @@
 # How to use:
 
-## 1. Go to recycle bin settings and make sure the setting 
+## 1. Disable immediate file removal in windows
+**Go to recycle bin settings and make sure the setting 
 "Don't move files to Recycle Bin. Remove files immediatelly when deleted."
-is DISABLED.
+is DISABLED.**
 
-I OFFER NO FILE RECOVERY ASSISTANCE IF YOU DELETE SOMETHING IMPORTANT ON ACCIDENT.
-YOU HAVE BEEN WARNED.
+**I OFFER NO FILE RECOVERY ASSISTANCE IF YOU DELETE SOMETHING IMPORTANT ON ACCIDENT.
+YOU HAVE BEEN WARNED.**
 
 
 ## 2. Installation
