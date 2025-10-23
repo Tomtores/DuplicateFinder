@@ -14,26 +14,26 @@ The program is a standalone executable. Unpack/download the program into folder 
 
 
 ## 3. Basic configuration:
-Click on Options->Config panel.
+Click on `Options->Config` panel.
 The default configuration is to ignore empty files, all other options are disabled.
 
 Available options and what they do:
-- "Use CRC32" - This is an older algorithm for calculating file hashes. It may be faster on very old machines that do not support MD5 in hardware. If unchecked, program will use MD5.
-- "Ignore empty files" - Files with size = 0 will be ignored. You will be surprised how many empty files one can have, and they will all egister as duplicates, because empty equals empty.
-- "Count folder files" - (Warning - negatively affects performance!) This will add counter showing how many files the folder contains, in addition to how many duplicate files are in the folder. Useful if you are trying to decide between "All photos 2025" and "That trip to Rome" folders. Affects performance because it needs to read contents of every folder.
-- "Use hash caching" - (WARNING: Privacy risk!)(WARNING: Stale data risk) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy and data integrity risks. 
-	Privacy risk: The cache file will store a standarized checksum of all files that have been identified as duplicates. If a hostile agent gets access to this file they can determine what uniquely identifiable files were present on your computer at some time. If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.
-	Stale data risk: As of v2025.04.12, the program does not rescan files that were cached. If you modify a file without changing its size or location, program will use the old stale cached checksum, which may lead to deleting file that is different from original. Use this option for scanning files that you know will never change (eg photo collection, music, movies). Do not use this for save games, especially ones coming in fixed size slots.
-- "Size" boxes. Input minimum and maximum size of files to scan, in kilobytes. Do note that windows shows files smaller than 1024 bytes as 1kb. Program will use the true size. Leave the first box blank if you want to scan files smaller than 1kb.
-- "Preview enabled" - (Warning - negatively affects performance) Enables thumbnails for duplicate list. This can be handy if you need to see what the file contains before deciding which folder it should go into. Experimental, may slow down program significantly or even crash it.
+- `"Use CRC32"` - This is an older algorithm for calculating file hashes. It may be faster on very old machines that do not support MD5 in hardware. If unchecked, program will use MD5.
+- `"Ignore empty files"` - Files with size = 0 will be ignored. You will be surprised how many empty files one can have, and they will all register as duplicates, because empty equals empty.
+- `"Count folder files"` - (**Warning - negatively affects performance!**) This will add counter showing how many files the folder contains, in addition to how many duplicate files are in the folder. Useful if you are trying to decide between "All photos 2025" and "That trip to Rome" folders. Affects performance because it needs to read contents of every folder.
+- `"Use hash caching"` - (**WARNING: Privacy risk!**)(**WARNING: Stale data risk**) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy and data integrity risks.   
+	**Privacy risk:** The cache file will store a standardized checksum of all files that have been identified as duplicates. If a hostile agent gets access to this file they can determine what uniquely identifiable files were present on your computer at some time. If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.  
+	**Stale data risk:** As of v2025.04.12, the program does not rescan files that were cached. If you modify a file without changing its size or location, program will use the old stale cached checksum, which may lead to deleting file that is different from original. Use this option for scanning files that you know will never change (eg. photo collection, music, movies). Do not use this for save games, especially ones coming in fixed size slots.
+- `"Size"` boxes. Input minimum and maximum size of files to scan, in kilobytes. Do note that windows shows files smaller than 1024 bytes as 1kb. Program will use the true size. Leave the first box blank if you want to scan files smaller than 1kb.
+- `"Preview enabled"` - (Warning - negatively affects performance) Enables thumbnails for duplicate list. This can be handy if you need to see what the file contains before deciding which folder it should go into. Experimental, may slow down program significantly or even crash it.
 
 
 ## 4. Main program window - how to use.
-Begin by clicking "Browse" button to select folder to scan. If you wish to scan multiple folders, click the "+" button next to browse button. 
-You can add ignore pattern by typing into the "ignore box". Simple wildcards supported, divide options with commas. Example "thumbs.db" to skip generated thumbnails files.
-Click start and wait. The scan may take a while - observe the bottom progress bar. It will fill up once for listing the files in folders, then once again when program starts comparing them.
-You can pause or cancel the scan at any time. 
-If you enabled the cache option, the program will reuse the already calculated checksums on next scan - otherwise, it has to do all the work again.
+Begin by clicking `"Browse"` button to select folder to scan. If you wish to scan multiple folders, click the `"+"` button next to browse button.  
+You can add ignore pattern by typing into the "ignore box". Simple wildcards supported, divide options with commas. Example "thumbs.db" to skip generated thumbnails files.  
+Click start and wait. The scan may take a while - observe the bottom progress bar. It will fill up once for listing the files in folders, then once again when program starts comparing them.  
+You can pause or cancel the scan at any time.   
+If you enabled the cache option, the program will reuse the already calculated checksums on next scan - otherwise, it has to do all the work again.  
 You can however cancel the scan midway and delete the file duplicates already found - if you don't mind working on partial results.
 
 
@@ -45,15 +45,15 @@ Result list shows files that are identical grouped into sets. Each line shows ic
 - You can mark a file and press "delete" button on keyboard to delete marked file.
 - You can select multiple files using ctrl or shift keys and delete them this way as well. Do take care that if you select all the entries in a group, you will be deleting ALL copies of the file from your drive. Do this only when you are ceratin all the copies are junk.
 - You can right-click any of the files for following options:
-	- "Open containing folder" - opens new explorer window with the folder the file is located in. You can asses if this is the folder you want to keep the file in. If you do any manual changes to files - deletion, renames, moving folders, please rerun the scan so the program can update the list.
-	- "Add to trashlist" - this will mark the whole folder as trash - all duplicate files in this folder will be deleted once "Mark trash" and "Delete marked" buttons are pressed. Do note that selection is recursive (all the subfolders are affected). If all copies of the duplicate reside in the Trash folder, they will not be touched. Program never deletes the last copy (unless you do it manually).
-	- "Add to keeplist" - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.
-Once you added folders to Trash/Keep list, press "Mark Trash" button to preview files that will be deleted. The list will mark them in ed and sort the files onto top of the list. Use "Delete Marked" button to remove the marked items.
-You can add folder manually to Keep/Trash list by using the buttons under the lists. Or remove them, clear them and sort them.
+	- `"Open containing folder"` - opens new explorer window with the folder the file is located in. You can asses if this is the folder you want to keep the file in. If you do any manual changes to files - deletion, renames, moving folders, please rerun the scan so the program can update the list.
+	- `"Add to trashlist"` - this will mark the whole folder as trash - all duplicate files in this folder will be deleted once "Mark trash" and "Delete marked" buttons are pressed. Do note that selection is recursive (all the subfolders are affected). If all copies of the duplicate reside in the Trash folder, they will not be touched. Program never deletes the last copy (unless you do it manually).
+	- `"Add to keeplist"` - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.
+Once you added folders to Trash/Keep list, press `"Mark Trash"` button to preview files that will be deleted. The list will mark them in red and sort the files onto top of the list. Use `"Delete Marked"` button to remove the marked items.
+You can add folder manually to Keep/Trash list by using the buttons under the lists. Or remove/clear/sort them.
 
 
 ## 6. Additional functions:
-- "Mark extra copies within folder" - found in "Actions" menu, this function will find folders that contain multiple copies of same file and mark all but last one for deletion. Press "Delete marked" to remove the files. Useful if you have multiple copies of "cake recipe.pdf" in your downloads folder.
+- `"Mark extra copies within folder"` - found in `"Actions"` menu, this function will find folders that contain multiple copies of same file and mark all but last one for deletion. Press `"Delete marked"` to remove the files. Useful if you have multiple copies of "cake recipe.pdf" in your downloads folder.
 
 
 ## x. How does the file comparing works?
