@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Engine.Entities;
 using Engine.FileEnumerators;
 using Engine.HashCalculators;
@@ -124,7 +126,7 @@ namespace Engine
                     try
                     {
                         var info = new FileInfo(file);
-                        var duplicate = new Duplicate(info.FullName, info.Length);
+                        var duplicate = new Duplicate(info.FullName, info.Length, info.LastWriteTimeUtc);
                         result.Add(duplicate);
                         this.Report(duplicate.FullName, result.Count);
                     }
@@ -330,6 +332,7 @@ namespace Engine
         /// Deletes given files from duplicate list and trims orphaned entries.
         /// </summary>
         /// <param name="deleted"></param>
+        [Obsolete("Delete this code in next version")]
         public IEnumerable<Exception> DeleteItems(IEnumerable<string> toDelete)
         {
             var errors = new List<Exception>();
@@ -382,5 +385,70 @@ namespace Engine
 
             return errors;
         }       
+
+        public async Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken)
+        {
+            var errors = new List<Exception>();
+            this.Report(WorkState.Deleting);    // todo get rid of reporting later
+            var totalFiles = toDelete.Count();
+
+            try
+            {                
+                var currentFile = 1;
+
+                foreach (var item in toDelete)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        this.Report(WorkState.Error);
+                        return new[] { new OperationCanceledException() };
+                    }
+
+                    this.Report("Deleting file " + currentFile + " of " + totalFiles, null, totalFiles, currentFile);   // todo get rid of reporting later
+                    progressCallback.Report((totalFiles, currentFile - 1, item));
+
+                    try
+                    {
+                        // not checking if file exists in duplicate list for performance reasons - I trust caller to not try and delete wrong things here.
+                        if (File.Exists(item))
+                        {
+                            if (File.GetAttributes(item).HasFlag(FileAttributes.ReadOnly))
+                            {
+                                errors.Add(new UnauthorizedAccessException(item));
+                            }
+                            else
+                            {
+                                FileSystem.DeleteFile(item, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                            }
+                        }
+                        else
+                        {
+                            errors.Add(new FileNotFoundException(item));
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        errors.Add(e);
+                    }
+
+                    currentFile++;
+                }
+
+                var results = CalculateAfterDeleteResults(this.duplicates.Results, toDelete);
+                this.duplicates.Replace(results.ToList());
+                NotifyProgress(ProgressKind.ItemList);
+
+                this.Report(WorkState.Iddle);                
+            }
+            catch (Exception)
+            {
+                this.Report(WorkState.Error);
+                throw;
+            }
+
+            progressCallback.Report((totalFiles, totalFiles, null));
+
+            return errors;
+        }
     }
 }

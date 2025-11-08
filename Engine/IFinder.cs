@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Engine.Entities;
 using System;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Engine
 {
@@ -20,10 +22,12 @@ namespace Engine
         IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null);
 
         /// <summary>
-        /// Deletes given files from duplicate list and trims orphaned entries.
+        /// Deletes given files from disk and duplicate list and trims orphaned entries asynchronously.
         /// </summary>
-        /// <param name="deleted"></param>
-        IEnumerable<Exception> DeleteItems(IEnumerable<string> deleted);
+        /// <param name="toDelete">List of file paths to delete.</param>
+        /// <param name="progressCallback">Callback for reporting progress.</param>
+        /// <returns>List of exceptions that occured during deletion.</returns>
+        Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken);
 
         /// <summary>
         /// Reports current finder state.

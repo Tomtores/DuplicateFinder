@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Engine;
 using Engine.Entities;
@@ -203,7 +204,7 @@ namespace Test
 
         private Duplicate Item(string path, string filename)
         {
-            return new Duplicate(path + @"\" + filename, 30);
+            return new Duplicate(path + @"\" + filename, 30, DateTime.Now);
         }
 
         private static List<Duplicate[]> MakeList(params Duplicate[] dupes)

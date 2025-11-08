@@ -20,7 +20,7 @@ namespace Plugins.Cache
         public string ComputeHash(Duplicate duplicate)
         {
             // get hash from cache
-            var cached = cache.GetHash(duplicate.FullName, duplicate.Size, hashName);
+            var cached = cache.GetHash(duplicate.FullName, duplicate.Size, hashName, duplicate.Timestamp);
             if (!string.IsNullOrWhiteSpace(cached))
             {
                 return cached;
@@ -28,7 +28,7 @@ namespace Plugins.Cache
 
             var hash = this.decoratedObject.ComputeHash(duplicate);
 
-            cache.Store(duplicate.FullName, duplicate.Size, hashName, hash);
+            cache.Store(duplicate.FullName, duplicate.Size, hashName, hash, duplicate.Timestamp);
 
             return hash;
         }

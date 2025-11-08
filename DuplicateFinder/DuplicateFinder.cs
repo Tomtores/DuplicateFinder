@@ -15,6 +15,7 @@ using DuplicateFinder.Enums;
 using DuplicateFinder.Commands;
 using DuplicateFinder.Utils;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace DuplicateFinder
 {
@@ -50,6 +51,8 @@ namespace DuplicateFinder
         private bool itemsChanged;  //prevent items being updated unnecessarily
         private bool statusBarChanged;  //prevent status bar updates when not needed
 
+        private CancellationTokenSource deleteFilesCancellationToken;
+
         private void StartTimer()
         {
             this.timer.Enabled = true;
@@ -77,7 +80,7 @@ namespace DuplicateFinder
         /// Currently applied filter.
         /// </summary>
         protected Dictionary<FilterType, Func<IEnumerable<DuplicateViewItem[]>, IEnumerable<DuplicateViewItem[]>>> FilterActions = new Dictionary<FilterType, Func<IEnumerable<DuplicateViewItem[]>, IEnumerable<DuplicateViewItem[]>>>();
-        
+
         /// <summary>
         /// Results by current filter.
         /// </summary>
@@ -109,7 +112,7 @@ namespace DuplicateFinder
 
             this.progressBar.Maximum = 100;
             this.progressBar.Minimum = 0;
-            
+
             this.timer = new Timer { Interval = 100 };
             this.timer.Tick += this.timer1_Tick;
 
@@ -199,7 +202,7 @@ namespace DuplicateFinder
                 this.isRunning = false;
                 this.ToggleButtons();
                 return;
-            }                    
+            }
 
             if (!this.backgroundWorker1.IsBusy)
             {
@@ -236,7 +239,7 @@ namespace DuplicateFinder
                 this.WorkerThread.Suspend();
                 this.isPaused = true;
                 this.pauseBtn.Text = "Resume";
-            }            
+            }
         }
 
         private void ToggleButtons()
@@ -249,6 +252,8 @@ namespace DuplicateFinder
 
         private void cancelBtn_Click(object sender, EventArgs e)
         {
+            this.deleteFilesCancellationToken?.Cancel();
+
             if (this.WorkerThread.ThreadState == ThreadState.Suspended)
             {
                 this.WorkerThread.Resume();
@@ -260,31 +265,7 @@ namespace DuplicateFinder
 
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs arguments)
         {
-            if (arguments.Argument is DeletionParameters)
-            {
-                this.WorkerThread = new Thread(obj =>
-                {
-                    var parameters = obj as DeletionParameters;
-
-                    var errors = this.finder.DeleteItems(parameters.DeletionItems);
-
-                    if (errors.Any())
-                    {
-                        MessageBox.Show("There were errors when deleting: \n" + string.Join("\n", errors.Select(e => e.ToString())),
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                    FinderConfigurator.RemoveFromCache(parameters.DeletionItems);
-                    foreach (var item in parameters.DeletionItems)
-                    {
-                        this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
-                    }
-
-                    // update deletion list - drop items that were already deleted
-                    this.deletionList = this.deletionList.Where(i => this.finder.Duplicates.SelectMany(d => d).Any(dupe => dupe.FullName == i)).ToList();
-                });
-            }
-            else if (arguments.Argument is MarkTrashAction)
+            if (arguments.Argument is MarkTrashAction)
             {
                 this.WorkerThread = new Thread(obj =>
                 {
@@ -293,7 +274,11 @@ namespace DuplicateFinder
                     this.MarkForDeletion(deletions);
                     var afterDelete = this.finder.Duplicates.Count() - deletions.Count(); //todo: may be wrong count if deletions contain items from same group. 
                     var message = string.Format("{0} merge conflicts left", afterDelete);
-                    UpdateStatusStrip(message);
+
+                    this.Invoke((Action)(() =>
+                    {
+                        UpdateStatusStrip(message);
+                    }));
                 }
                 );
             }
@@ -375,7 +360,7 @@ namespace DuplicateFinder
             var dupeCount = this.finder.Duplicates.Sum(r => r.Length);
             var fileStatusFragment = $"{status.FilesFound.ToString("N0", locale)} files, {dupeCount.ToString("N0", locale)} dupes";
             var dupeSize = this.finder.Duplicates.Sum(r => r.Sum(i => i.Size));
-            var dupeSizeFragment = (dupeSize / (1024*1024)).ToString("N0", locale) + " MB";
+            var dupeSizeFragment = (dupeSize / (1024 * 1024)).ToString("N0", locale) + " MB";
             var groupStatusFragment = $"{this.finder.Duplicates.Count().ToString("N0", locale)} groups";
 
             string statusMessage;
@@ -397,7 +382,7 @@ namespace DuplicateFinder
 
             this.statusStrip1.Refresh();
 
-            UpdateButtonState(status);            
+            UpdateButtonState(status);
         }
 
         private void UpdateButtonState(IProgressStatus status)
@@ -419,24 +404,53 @@ namespace DuplicateFinder
         /// <summary>
         /// Deletes selected items from disk and from results collection.
         /// </summary>
-        private void DeleteItems(IEnumerable<string> deletionItems)
+        private async Task DeleteItems(IEnumerable<string> deletionItems)
         {
             if (this.finder == null)
             {
                 return;
             }
 
+            this.deleteFilesCancellationToken = new CancellationTokenSource();
             this.isRunning = true;
             this.ToggleButtons();
-
-            // clear the view
             this.RefreshView();
 
-            StartTimer();
-            this.backgroundWorker1.RunWorkerAsync(new DeletionParameters(deletionItems));
+            await Task.Run(async () =>
+            {
+                var progress = new Progress<(int total, int processed, string currentFile)>(p =>
+                {
+                    var percent = p.total == 0 ? 0 : (int)((p.processed / (double)p.total) * 100);
+                    this.Invoke((Action)(() =>
+                    {
+                        this.progressBar.Value = percent;
+                        this.filesStatus.Text = $"Deleting files: {p.processed} of {p.total} - {p.currentFile}";
+                    }));
+                });
 
+                var errors = await this.finder.DeleteItemsAsync(deletionItems, progress, this.deleteFilesCancellationToken.Token);
 
-            // todo: wipe the cached items as they are deleted
+                if (errors.Any())
+                {
+                    MessageBox.Show("There were errors when deleting: \n" + string.Join("\n", errors.Select(e => e.ToString())),
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                FinderConfigurator.RemoveFromCache(deletionItems);
+                foreach (var item in deletionItems)
+                {
+                    this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
+                }
+
+                // update deletion list - drop items that were already deleted
+                this.deletionList = this.deletionList.Where(i => this.finder.Duplicates.SelectMany(d => d).Any(dupe => dupe.FullName == i)).ToList();
+                this.deleteFilesCancellationToken = null;
+            });
+
+            this.isRunning = false;
+            this.ToggleButtons();
+            this.UpdateStatusStrip();
+            this.RefreshView();
         }
 
         private void UpdateSorting(ColumnNames column)
@@ -516,9 +530,9 @@ namespace DuplicateFinder
             return sorted;
         }
 
-        private void nukeMarkedButton_Click(object sender, EventArgs e)
+        private async void nukeMarkedButton_Click(object sender, EventArgs e)
         {
-            this.DeleteItems(this.deletionList);
+            await this.DeleteItems(this.deletionList);
             this.resultsView1.ResetPosition();
             this.sortAscending = !this.sortAscending; //hack: to keep old sorting
             this.UpdateSorting(this.sortColumn);
@@ -555,6 +569,6 @@ namespace DuplicateFinder
             this.ConfigureListView(this.isRunning);
             this.resultsView1.DeletionList = this.deletionList;
             this.resultsView1.Items = this.FilteredResults;
-        }            
+        }
     }
 }

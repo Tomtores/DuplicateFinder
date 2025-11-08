@@ -111,10 +111,6 @@ namespace DuplicateFinder
             if (checkBox.Checked == true)
             {
                 var warningText = "This setting will save potentially sensitive file metadata like: full path, file size and checksum, in program folder.\n"
-                    + "Use this ONLY FOR FILES THAT DO NOT CHANGE, as they will not be re-indexed even if you write new content into them.\n"
-                    + "Use for: Images, Movies, Archives that are never changed after creation.\n"
-                    + "DO NOT USE for SaveGames, Documents, Downloads in progress and any other files that you modify.\n"
-                    + "If you indexed files with cache on, then modified them, please use Delete Cache button or manually delete cache.tsv in program folder.\n"
                     + "\nClick 'Yes' below to acknowledge you understood this warning and want to enable the cache, otherwise click 'no'";
                 var result = MessageBox.Show(warningText, "CAUTION!", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
                 if (result == DialogResult.Yes)

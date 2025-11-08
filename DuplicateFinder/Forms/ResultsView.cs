@@ -8,6 +8,7 @@ using System.IO;
 using Engine.Entities;
 using DuplicateFinder;
 using DuplicateFinder.Enums;
+using System.Threading.Tasks;
 
 namespace Components
 {
@@ -16,7 +17,7 @@ namespace Components
     /// </summary>
     public partial class ResultsView : UserControl
     {
-        private Action<IEnumerable<string>> onDelete;
+        private Func<IEnumerable<string>, Task> onDelete;
         private Action<ColumnNames> onUpdateSortColumn;
         private Action<DuplicateViewItem> onItemRightclick;
         private bool countDirectoryFiles;
@@ -39,7 +40,7 @@ namespace Components
         private IEnumerable<Duplicate> GetHeader(DuplicateViewItem i)
         {
             // use bold font style
-            var item = new DuplicateViewItemHeader(i.Size, i.Hash, i.FullName);
+            var item = new DuplicateViewItemHeader(i.Size, i.Hash, i.FullName, i.Timestamp);
             return new[] { item };
         }
 
@@ -71,7 +72,7 @@ namespace Components
             this.listView1.FullRowSelect = true;
         }
 
-        public void Configure(bool countDirectoryFiles, Action<IEnumerable<string>> onDelete, Action<ColumnNames> onUpdateSortColumn, Action<DuplicateViewItem> onItemRightclick, int thumbsize, bool previewEnabled)
+        public void Configure(bool countDirectoryFiles, Func<IEnumerable<string>, Task> onDelete, Action<ColumnNames> onUpdateSortColumn, Action<DuplicateViewItem> onItemRightclick, int thumbsize, bool previewEnabled)
         {
             this.onDelete = onDelete;
             this.onUpdateSortColumn = onUpdateSortColumn;
@@ -158,7 +159,7 @@ namespace Components
             this.SizeFirstColumn(this.listView1);
         }
 
-        private void resultsView_KeyDown(object sender, KeyEventArgs e)
+        private async void resultsView_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Delete)
             {
@@ -178,7 +179,7 @@ namespace Components
                     }
                 }
 
-                this.onDelete(deletionItems);
+                await this.onDelete(deletionItems);
             }
         }
 

@@ -15,6 +15,8 @@ is DISABLED.**
 **I OFFER NO FILE RECOVERY ASSISTANCE IF YOU DELETE SOMETHING IMPORTANT ON ACCIDENT.
 YOU HAVE BEEN WARNED.**
 
+### 1b. Work on a Copy of the data
+It is recommended you try the program on copy of your data, to learn what it does and how to use it properly, before you use it on your actual data. Copy the folder or disk you want to deduplicate into another place, and run the program on that copy. When you are certain you got the results you wanted, you can rename the old folder to something like `MyFolder_Old` and move the copy into original spot. Always keep backups of your data. 
 
 ## 2. Installation
 The program is a standalone executable. Unpack/download the program into folder of your choosing and run the exe. You can put it in program files and add a shortcut if you wish. All program settings and cache will be stored in program folder. Does not touch registry.
@@ -28,9 +30,7 @@ Available options and what they do:
 - `"Use CRC32"` - This is an older algorithm for calculating file hashes. It may be faster on very old machines that do not support MD5 in hardware. If unchecked, program will use MD5.
 - `"Ignore empty files"` - Files with size = 0 will be ignored. You will be surprised how many empty files one can have, and they will all register as duplicates, because empty equals empty.
 - `"Count folder files"` - (**Warning - negatively affects performance!**) This will add counter showing how many files the folder contains, in addition to how many duplicate files are in the folder. Useful if you are trying to decide between "All photos 2025" and "That trip to Rome" folders. Affects performance because it needs to read contents of every folder.
-- `"Use hash caching"` - (**WARNING: Privacy risk!**)(**WARNING: Stale data risk**) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy and data integrity risks.   
-	**Privacy risk:** The cache file will store a standardized checksum of all files that have been identified as duplicates. If a hostile agent gets access to this file they can determine what uniquely identifiable files were present on your computer at some time. If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.  
-	**Stale data risk:** As of v2025.04.12, the program does not rescan files that were cached. If you modify a file without changing its size or location, program will use the old stale cached checksum, which may lead to deleting file that is different from original. Use this option for scanning files that you know will never change (eg. photo collection, music, movies). Do not use this for save games, especially ones coming in fixed size slots.
+- `"Use hash caching"` - (**WARNING: Privacy risk!**) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy risks. The cache file will store a standardized checksum of all files that have been identified as duplicates. If a hostile agent gets access to this file they can determine what uniquely identifiable files were present on your computer at given time. If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.  	
 - `"Size"` boxes. Input minimum and maximum size of files to scan, in kilobytes. Do note that windows shows files smaller than 1024 bytes as 1kb. Program will use the true size. Leave the first box blank if you want to scan files smaller than 1kb.
 - `"Preview enabled"` - (Warning - negatively affects performance) Enables thumbnails for duplicate list. This can be handy if you need to see what the file contains before deciding which folder it should go into. Experimental, may slow down program significantly or even crash it.
 
@@ -67,7 +67,17 @@ You can add folder manually to Keep/Trash list by using the buttons under the li
 Program compares the file size (different sizes = different files), then calculates the checksum of the file. If checksums match, the files are considered identical.
 There is some speedup magic included for larger files - program will compare small chunk from middle of the files to determine if they have the same contents, and only if the middle is identical, calculate full checksum.
 
+# FAQ
 
+## Help, I deleted a file I wanted to keep!
+- Check your recycle bin, the file should still be there
+- If the file is not in recycle bin anymore, stop using the computer. If file was on system drive (usually C:), power off the machine and ask for tech help at repair shop or from knowledgeable friend. If file was on data drive, stop all programs using that drive, then google file recovery tools. Don't write anything to drive that had the file removed.
+
+## Program doesn't recognize identical pictures.
+- Check if you have size filters on (in settings) or name filters on (top bar). Sometimes, files have different metadata in them and program will not detect them, even if they look identical to you, because bytes are different. Feel free to compare and delete them by hand. Program also does not recognize different sizes of same picture - because 3000x2000 image is different thing than 800x600 image. Image comparison is hard, you will need different tool for that.
+
+## I was doing X and program crashed.
+- My apologies. Please send me a note describing how exactly you managed to crash the program. I will most likely need some example data, if you can create a dummy folder that causes the crash. Please do not send me your actual private data.
 
 
 # Change history:
@@ -169,3 +179,7 @@ v2025.03.08 - Improved performance of refreshing result view - the view is now o
 v2025.04.12 - Changed cache autosave to occur every 5 minutes instead of every 1gb of data to avoid disk trashing.
 
 v2025.10.23 - Public release
+
+v2025.10.24 - Reworked file deletion to use async/await instead of obsolete background worker.
+
+v2025.11.08 - Added Timestamp to cache info. Program will now recognize files that have been modified since last run and rehash them.

@@ -66,7 +66,6 @@
     <Compile Include="AbortableWorker.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Commands\DeletionParameters.cs" />
     <Compile Include="Commands\MarkTrashAction.cs" />
     <Compile Include="Forms\TrimCacheDialog.cs">
       <SubType>Form</SubType>

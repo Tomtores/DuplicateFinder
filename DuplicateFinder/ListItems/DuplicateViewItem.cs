@@ -6,7 +6,7 @@ namespace DuplicateFinder
     {
         public int DirectoryDuplicatesCount { get; private set; }
         
-        public DuplicateViewItem(Duplicate that, int directoryDuplicateCount):base(that.FullName, that.Size)
+        public DuplicateViewItem(Duplicate that, int directoryDuplicateCount):base(that.FullName, that.Size, that.Timestamp)
         {
             this.DirectoryDuplicatesCount = directoryDuplicateCount;
         }            

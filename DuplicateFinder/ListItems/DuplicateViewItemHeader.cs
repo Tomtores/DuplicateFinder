@@ -1,10 +1,11 @@
 ﻿using Engine.Entities;
+using System;
 
 namespace Components
 {
     internal class DuplicateViewItemHeader : Duplicate
     {
-        public DuplicateViewItemHeader(long size, string hash, string fullName) : base(fullName, size)
+        public DuplicateViewItemHeader(long size, string hash, string fullName, DateTime timestamp) : base(fullName, size, timestamp)
         {
             this.Hash = hash;
         }

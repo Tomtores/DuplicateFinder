@@ -3,6 +3,7 @@ using Engine.CleanupStrategies;
 using Engine.Entities;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Test
 {
@@ -30,7 +31,7 @@ namespace Test
 
         private static Duplicate Make(string folder, string filename)
         {
-           return new Duplicate(folder + "\\" + filename, 10);
+           return new Duplicate(folder + "\\" + filename, 10, DateTime.Now);
         }
     }
 }

@@ -25,13 +25,26 @@ namespace Plugins.Cache
             LoadCache();
         }
 
-        public string GetHash(string fullName, long size, ChecksumKind kind)
+        public string GetHash(string fullName, long size, ChecksumKind kind, DateTime timestamp)
         {
             HashInfo value;
             if (cache.TryGetValue(fullName, out value))
             {
                 if (value.Size != size)
                 {
+                    cache.Remove(fullName); // cached item is no longer valid, remove
+                    return null;    
+                }
+
+                // Compatibility fixup for old cache entries without timestamp
+                if (value.fileModifiedTimestamp == null)
+                {
+                    value.fileModifiedTimestamp = timestamp;
+                }
+
+                if (value.fileModifiedTimestamp != timestamp)
+                { 
+                    cache.Remove(fullName); // cached item is no longer valid, remove
                     return null;
                 }
 
@@ -49,12 +62,16 @@ namespace Plugins.Cache
             return null;
         }
 
-        public void Store(string fullName, long size, ChecksumKind hashName, string hash)
+        public void Store(string fullName, long size, ChecksumKind hashName, string hash, DateTime fileModifiedDateUtc)
         {
             HashInfo value;
             if (!cache.TryGetValue(fullName, out value))
             {
-                value = new HashInfo { Size = size };
+                value = new HashInfo 
+                { 
+                    Size = size,
+                    fileModifiedTimestamp = fileModifiedDateUtc
+                };
                 this.cache.Add(fullName, value);
             }
 
@@ -70,6 +87,8 @@ namespace Plugins.Cache
                     value.QuickByte = hash;
                     break;
             }
+
+            value.fileModifiedTimestamp = fileModifiedDateUtc;
 
             isWrittenOutToDisk = false;
             PeriodicSave();
@@ -105,6 +124,7 @@ namespace Plugins.Cache
             public string CRC32;
             public string MD5;
             public string QuickByte;
+            public DateTime? fileModifiedTimestamp;
         }
 
         private void LoadCache()
@@ -115,23 +135,40 @@ namespace Plugins.Cache
                 using (var reader = new StreamReader(File.OpenRead(this.path), Encoding.UTF8))
                 {
                     var header = reader.ReadLine();
+                    var timestampModeEnabled = !string.IsNullOrWhiteSpace(header.Split('\t').GetValueSafe(5));
                     while (!reader.EndOfStream)
                     {
                         var row = reader.ReadLine();
                         var values = row.Split('\t');
+                        if (values.Length < 2)
+                        {
+                            continue;
+                        }
                         results[values.GetValueSafe(0)] =
                             new HashInfo
                             {
                                 Size = Convert.ToInt64(values.GetValueSafe(1)),
                                 CRC32 = values.GetValueSafe(2),
                                 MD5 = values.GetValueSafe(3),
-                                QuickByte = values.GetValueSafe(4)
+                                QuickByte = values.GetValueSafe(4),
+                                fileModifiedTimestamp = timestampModeEnabled ? ParseDate(values.GetValueSafe(5)) : null
                             };
                     }
                 }
             }
 
             this.cache = results;
+        }
+
+        private static DateTime? ParseDate(string dateString)
+        {
+            if (string.IsNullOrWhiteSpace(dateString))
+            {
+                return null;
+            }
+
+            var date = DateTime.Parse(dateString, null, System.Globalization.DateTimeStyles.RoundtripKind);
+            return date;
         }
 
         /// <summary>
@@ -148,10 +185,10 @@ namespace Plugins.Cache
             {
                 using (var file = new StreamWriter(this.path, false, Encoding.UTF8))
                 {
-                    file.WriteLine("Path\tSize\tCRC32\tMD5\tQuickByte\n");
+                    file.WriteLine("Path\tSize\tCRC32\tMD5\tQuickByte\tTimestamp\n");
                     foreach (var item in this.cache)
                     {
-                        file.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}", item.Key, item.Value.Size, item.Value.CRC32, item.Value.MD5, item.Value.QuickByte);
+                        file.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t{5}", item.Key, item.Value.Size, item.Value.CRC32, item.Value.MD5, item.Value.QuickByte, item.Value.fileModifiedTimestamp?.ToString("o"));
                     }
                 }
 

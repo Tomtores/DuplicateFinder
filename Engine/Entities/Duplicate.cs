@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 namespace Engine.Entities
 {
     /// <summary>
@@ -8,12 +9,13 @@ namespace Engine.Entities
     {
         /// <param name="fullName">Full file path (unique)</param>
         /// <param name="size">Size (in bytes)</param>
-        /// <param name="directoryName">Directory path</param>
-        public Duplicate(string fullName, long size)
+        /// <param name="timestamp">File modified date in UTC</param>
+        public Duplicate(string fullName, long size, DateTime timestamp)
         {
             FullName = fullName;
             Size = size;
             DirectoryName = string.IsNullOrWhiteSpace(fullName) ? fullName : Path.GetDirectoryName(fullName);
+            Timestamp = timestamp;
         }
 
         /// <summary>
@@ -22,6 +24,7 @@ namespace Engine.Entities
         public string FullName { get; private set; }
         public long Size { get; private set; }
         public string DirectoryName { get; private set; }
+        public DateTime Timestamp { get; set; }
 
         public string Hash { get; set; }
 

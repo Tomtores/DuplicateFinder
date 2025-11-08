@@ -1,5 +1,3 @@
-make cache read last modified date too
-
 1. IMPORTANT change background worker to thread
 2. stop trashing/reading disk when iddle
 
@@ -7,15 +5,12 @@ improvement - rightclicking on group header brings menu to open all item folders
 
 new feature - on rightclick on file -> merge all here -> 1. deletes duplicates from other folders (both duplicates of this file and other files in same folder). 2. moves all files from other folders to the folder containing current file. 0. Display warning if there are more duplicate sets within same folder, like "folder contains X duplicates found in other folders (list folders), this will merge all the folders onto this one, continue?"
 
-add file timestamp to cache(!)
-
 
 
 feature: add selecting by string, eg ability to search folder xyz for deletion
 make bottom panels resize with window (keep/trash sections)
 feature - show image previev on hover - hold alt?
 
-split deletion into separate thread - worker keeps getting busy/refreshing
 todo: stop refreshing (timer) when paused
 
 add actions: remove duplicate folder
@@ -74,8 +69,6 @@ delete empty folders tool?
 
 
 smaller compact view for deletion list?
-
-ut - create the restricted files programmatically
 
 
 need program icon
