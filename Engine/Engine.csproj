@@ -49,13 +49,14 @@
     <Compile Include="ConcurrentBufferedList.cs" />
     <Compile Include="Entities\Duplicate.cs" />
     <Compile Include="Entities\IProgressStatus.cs" />
+    <Compile Include="Entities\MergePreview.cs" />
     <Compile Include="Entities\ProgressKind.cs" />
     <Compile Include="Entities\WorkState.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FinderFactory.cs" />
     <Compile Include="FileEnumerators\SafeFileEnumerator.cs" />
     <Compile Include="FileEnumerators\StandardFileEnumerator.cs" />
-    <Compile Include="FileEnumerators\IFileEnumerator.cs" />
+    <Compile Include="FileEnumerators\IFileAccessor.cs" />
     <Compile Include="Finder.cs" />
     <Compile Include="HashCalculators\CRC32Calculator.cs" />
     <Compile Include="HashCalculators\CRC32_Hasher.cs" />

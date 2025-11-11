@@ -20,6 +20,7 @@ namespace Components
         private Func<IEnumerable<string>, Task> onDelete;
         private Action<ColumnNames> onUpdateSortColumn;
         private Action<DuplicateViewItem> onItemRightclick;
+        private Action<DuplicateViewItemHeader> onHeaderRightclick;
         private bool countDirectoryFiles;
         private int thumbsize;
         private IEnumerable<string> deletionList;
@@ -72,11 +73,12 @@ namespace Components
             this.listView1.FullRowSelect = true;
         }
 
-        public void Configure(bool countDirectoryFiles, Func<IEnumerable<string>, Task> onDelete, Action<ColumnNames> onUpdateSortColumn, Action<DuplicateViewItem> onItemRightclick, int thumbsize, bool previewEnabled)
+        public void Configure(bool countDirectoryFiles, Func<IEnumerable<string>, Task> onDelete, Action<ColumnNames> onUpdateSortColumn, Action<DuplicateViewItem> onItemRightclick, Action<DuplicateViewItemHeader> onHeaderClick, int thumbsize, bool previewEnabled)
         {
             this.onDelete = onDelete;
             this.onUpdateSortColumn = onUpdateSortColumn;
             this.onItemRightclick = onItemRightclick;
+            this.onHeaderRightclick = onHeaderClick;
             this.countDirectoryFiles = countDirectoryFiles;
             this.thumbsize = Math.Min(256, thumbsize);
             this.showPreview = previewEnabled;
@@ -119,7 +121,7 @@ namespace Components
                 var item = GetItemAtIndex(index);
                 if (item is DuplicateViewItemHeader) //check if header
                 {
-                    // do nothing
+                    this.onHeaderRightclick(item as DuplicateViewItemHeader);
                 }
                 else
                 {

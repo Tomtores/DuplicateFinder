@@ -9,6 +9,7 @@ namespace DuplicateFinder
         public DuplicateViewItem(Duplicate that, int directoryDuplicateCount):base(that.FullName, that.Size, that.Timestamp)
         {
             this.DirectoryDuplicatesCount = directoryDuplicateCount;
+            this.Hash = that.Hash;
         }            
     }
 }

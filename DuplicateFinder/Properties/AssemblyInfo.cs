@@ -33,4 +33,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("2025.11.08")]    //program version - I once told myself that my programs shall have no versions, only release dates. I oppose versioning programs into hundreds to fake progress.
+[assembly: AssemblyInformationalVersion("2025.11.11")]    //program version - I once told myself that my programs shall have no versions, only release dates. I oppose versioning programs into hundreds to fake progress.

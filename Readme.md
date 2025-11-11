@@ -54,7 +54,11 @@ Result list shows files that are identical grouped into sets. Each line shows ic
 - You can right-click any of the files for following options:
 	- `"Open containing folder"` - opens new explorer window with the folder the file is located in. You can asses if this is the folder you want to keep the file in. If you do any manual changes to files - deletion, renames, moving folders, please rerun the scan so the program can update the list.
 	- `"Add to trashlist"` - this will mark the whole folder as trash - all duplicate files in this folder will be deleted once "Mark trash" and "Delete marked" buttons are pressed. Do note that selection is recursive (all the subfolders are affected). If all copies of the duplicate reside in the Trash folder, they will not be touched. Program never deletes the last copy (unless you do it manually).
-	- `"Add to keeplist"` - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.
+	- `"Add to keeplist"` - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.  
+	- `"Merge here"` - Advanced bulk processing functionality. Program will keep all duplicates in marked folder (even ones from other groups), delete other duplicates, like one-off "Keep List" folder, and also move everything from folders that had duplicates into the target folder. Conflicting file or folder names will be auto suffixed with number. User can opt to not move the subfolders.  
+	  Caution - program cannot move files and folders from one drive to another - if duplicates exist on different drive, you have to handle those manually first.  
+	  Use this option for merging together folders that are almost identicall but contain extra items. For safety reasons, if subfolder moved has same name as subfolder existing in target folder, it will be renamed instead of merging contents. 
+- You can right-click a list header and select "Open All folders" to open folder for every duplicate in given group. If multiple duplicates reside in same folder, only one folder window will be opened.  
 Once you added folders to Trash/Keep list, press `"Mark Trash"` button to preview files that will be deleted. The list will mark them in red and sort the files onto top of the list. Use `"Delete Marked"` button to remove the marked items.
 You can add folder manually to Keep/Trash list by using the buttons under the lists. Or remove/clear/sort them.
 
@@ -182,4 +186,7 @@ v2025.10.23 - Public release
 
 v2025.10.24 - Reworked file deletion to use async/await instead of obsolete background worker.
 
-v2025.11.08 - Added Timestamp to cache info. Program will now recognize files that have been modified since last run and rehash them.
+v2025.11.08 - Added Timestamp to cache info. Program will now recognize files that have been modified since last run and rehash them.  
+			  Added context menu on group headers to open all folders containing duplicate. This is similar to "Open containing folder" but executed on all files in the group at once. If multiple duplicates exist in one folder, program will only open the folder once.
+
+v2025.11.11 - Added Merge here functionality. User can now decide to delete duplicates from other folders and move accompanying files to selected folder. Useful when consolidating file folders where some of them have additional content. User can opt to skip moving subfolders. Caution - program cannot move files and folders across drives.

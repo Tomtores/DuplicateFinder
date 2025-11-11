@@ -1,21 +1,23 @@
-﻿using System;
+﻿using Components;
+using DuplicateFinder.Commands;
+using DuplicateFinder.Configuration;
+using DuplicateFinder.Enums;
+using DuplicateFinder.Forms;
+using DuplicateFinder.Utils;
+using Engine;
+using Engine.Entities;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Engine;
-using Engine.Entities;
 using ThreadState = System.Threading.ThreadState;
 using Timer = System.Windows.Forms.Timer;
-using DuplicateFinder.Configuration;
-using DuplicateFinder.Enums;
-using DuplicateFinder.Commands;
-using DuplicateFinder.Utils;
-using System.Globalization;
-using System.Threading.Tasks;
 
 namespace DuplicateFinder
 {
@@ -133,6 +135,7 @@ namespace DuplicateFinder
                 this.DeleteItems,
                 this.UpdateSorting,
                 this.RenderContextMenu,
+                this.RenderHeaderContextMenu,
                 settings.Thumbsize,
                 !disablePreview && settings.PreviewEnabled
                 );
@@ -148,6 +151,23 @@ namespace DuplicateFinder
                 (send, evt) => this.AddToKeepList(path)));
             this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Open containing folder", null,
                 (send, evt) => this.OpenFolder(path)));
+            this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Merge ALL Here", null,
+                async (send, evt) => this.MergeFolderAction(path)));
+
+            this.contextMenuStrip1.Show(Cursor.Position);
+        }
+
+        private void RenderHeaderContextMenu(DuplicateViewItemHeader item)
+        {
+            var paths = this.finder.Duplicates
+                .Where(d => d.Any(i => i.Footprint == item.Footprint))
+                .SelectMany(d => d)
+                .Select(d => d.DirectoryName)
+                .Distinct();
+
+            this.contextMenuStrip1.Items.Clear();
+            this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Open ALL folders", null,
+                (send, evt) => this.OpenFolders(paths)));
             this.contextMenuStrip1.Show(Cursor.Position);
         }
 
@@ -159,6 +179,29 @@ namespace DuplicateFinder
                 UseShellExecute = true,
                 Verb = "open"
             });
+        }
+
+        private void OpenFolders(IEnumerable<string> paths)
+        {
+            foreach (var path in paths)
+            {
+                this.OpenFolder(path);
+                Thread.Sleep(100);  // to prevent folder spam
+            }
+        }
+
+        private async Task MergeFolderAction(string path)
+        {
+            var preview = this.finder.CalculateMergeIntoFolder(path);
+            var dialog = new MergeForm(preview);
+            var dialogResult = dialog.ShowDialog(this);
+            if (dialogResult == DialogResult.OK)
+            {
+                await ExecuteMerge(preview, dialog.SkipSubfolders == false);
+
+                this.itemsChanged = true;
+                this.RefreshView();
+            }
         }
 
         #region Stage 1 - search settings
@@ -438,6 +481,55 @@ namespace DuplicateFinder
 
                 FinderConfigurator.RemoveFromCache(deletionItems);
                 foreach (var item in deletionItems)
+                {
+                    this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
+                }
+
+                // update deletion list - drop items that were already deleted
+                this.deletionList = this.deletionList.Where(i => this.finder.Duplicates.SelectMany(d => d).Any(dupe => dupe.FullName == i)).ToList();
+                this.deleteFilesCancellationToken = null;
+            });
+
+            this.isRunning = false;
+            this.ToggleButtons();
+            this.UpdateStatusStrip();
+            this.RefreshView();
+        }
+
+        private async Task ExecuteMerge(MergePreview preview, bool moveSubfolders)
+        {
+            if (this.finder == null)
+            {
+                return;
+            }
+
+            this.deleteFilesCancellationToken = new CancellationTokenSource();
+            this.isRunning = true;
+            this.ToggleButtons();
+            this.RefreshView();
+
+            await Task.Run(async () =>
+            {
+                var progress = new Progress<(int total, int processed, string currentFile)>(p =>
+                {
+                    var percent = p.total == 0 ? 0 : (int)((p.processed / (double)p.total) * 100);
+                    this.Invoke((Action)(() =>
+                    {
+                        this.progressBar.Value = percent;
+                        this.filesStatus.Text = $"Merging folders: {p.processed} of {p.total} - {p.currentFile}";
+                    }));
+                });
+
+                var errors = await this.finder.MergeIntoFolderAsync(preview, moveSubfolders, progress, this.deleteFilesCancellationToken.Token);
+
+                if (errors.Any())
+                {
+                    MessageBox.Show("There were errors when processing folders: \n" + string.Join("\n", errors.Select(e => e.ToString())),
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                FinderConfigurator.RemoveFromCache(preview.DuplicatesToDelete);
+                foreach (var item in preview.DuplicatesToDelete)
                 {
                     this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
                 }

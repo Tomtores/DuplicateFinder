@@ -30,6 +30,21 @@ namespace Engine
         Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Preview the merge result. This may take significant time to calculate. Does not report progress or support cancellation.
+        /// </summary>
+        /// <param name="folderPath">Folder with duplicates to keep.</param>
+        /// <returns>Shopping list of duplicate deleteions and file/folder moves.</returns>
+        MergePreview CalculateMergeIntoFolder(string folderPath);
+
+        /// <summary>
+        /// Merges files from other folders onto this one. Duplicates existing in other folders are deleted. All other files and subfolders are moved into target folder. If naming conflicts exists, files will be renamed.
+        /// </summary>
+        /// <param name="actionsToPerform">List of actions precalculated in <see cref="CalculateMergeIntoFolder(string)"/></param>
+        /// <param name="progressCallback">Callback for reporting how many files have been processed.</param>
+        /// <returns>List of exceptions that accured during process.</returns>
+        Task<IEnumerable<Exception>> MergeIntoFolderAsync(MergePreview actionsToPerform, bool moveSubfolders, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken);
+
+        /// <summary>
         /// Reports current finder state.
         /// </summary>
         IProgressStatus Status { get; }

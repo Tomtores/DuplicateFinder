@@ -19,7 +19,7 @@ namespace Engine
         /// Files identified as identical are passed to next calculator until differences are found or no calculators are left to try.
         /// It is advised to use lightweight calculator in front and detailed one as last.</param>
         /// <returns></returns>
-        public static IFinder CreateInstance(IFileEnumerator enumerator, params IHashCalculator[] hashCalculators)
+        public static IFinder CreateInstance(IFileAccessor enumerator, params IHashCalculator[] hashCalculators)
         {
             if (enumerator == null)
             {
@@ -34,12 +34,12 @@ namespace Engine
 
         #region IFileEnumerator
 
-        public static IFileEnumerator GetStandardFileEnumerator()
+        public static IFileAccessor GetStandardFileEnumerator()
         {
             return new StandardFileEnumerator();
         }
 
-        public static IFileEnumerator GetSafeFileEnumerator()
+        public static IFileAccessor GetSafeFileEnumerator()
         {
             return new SafeFileEnumerator();
         }

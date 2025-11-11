@@ -5,7 +5,7 @@ using Engine;
 using Engine.HashCalculators;
 using Engine.FileEnumerators;
 
-namespace Test
+namespace Test.Oldtests
 {
     [TestClass]
     public class ComparisonTest
@@ -32,7 +32,7 @@ namespace Test
         [TestMethod]
         public void GivenFakeHasher_FinderDiferentiatesBySize()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new FakeHasher());
+            var finder = new Finder(new StandardFileEnumerator(), new FakeHasher(null));
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;
@@ -80,7 +80,7 @@ namespace Test
         [TestMethod]
         public void GivenCRCAndFakeHasher_ShouldShouldUseInSequence()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new MD5_Hasher(), new FakeHasher());
+            var finder = new Finder(new StandardFileEnumerator(), new MD5_Hasher(), new FakeHasher(null));
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;

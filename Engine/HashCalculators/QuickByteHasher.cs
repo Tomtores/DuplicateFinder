@@ -16,7 +16,7 @@ namespace Engine.HashCalculators
         /// <param name="skipSize">File size in bytes. Files under this size will be skipped (not opened, hash returns empty string). Default is 0 (nothing skipped).</param>
         /// <remarks>In some cases it may be more efficient to not "peek" into small files that can be loaded in single read (mft/one cluster),
         /// and just calculate full crc in next step.</remarks>
-        public QuickByteHasher(int sampleSize = 64, int skipSize = 0)
+        public QuickByteHasher(int sampleSize = 64, int skipSize = 0)   //todo reduce quickbyte size to 16 (equal to md5)
         {
             this.sampleSize = sampleSize;
             this.skipSize = skipSize;

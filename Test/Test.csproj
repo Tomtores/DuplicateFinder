@@ -64,15 +64,19 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="CRC32CalculatorTest.cs" />
-    <Compile Include="DeduplicationStrategyTest.cs" />
-    <Compile Include="FakeFileEnumerator.cs" />
-    <Compile Include="FakeHasher.cs" />
+    <Compile Include="HashCalculatorTests\CRC32CalculatorTest.cs" />
+    <Compile Include="DeduplicationStrategyTests\DeduplicationStrategyTest.cs" />
+    <Compile Include="MergeFoldersTests\CalculateAffectedFolders_Tests.cs" />
+    <Compile Include="MergeFoldersTests\CalculateFilesToMove_Tests.cs" />
+    <Compile Include="MergeFoldersTests\CalculateFoldersToMove.cs" />
+    <Compile Include="Mocks\FinderProxy.cs" />
+    <Compile Include="Mocks\FakeFileAccessor.cs" />
+    <Compile Include="Mocks\FakeHasher.cs" />
     <Compile Include="FindDuplicatesTest.cs" />
-    <Compile Include="FinderTest.cs" />
+    <Compile Include="OldTests\FinderTest.cs" />
+    <Compile Include="MergeFoldersTests\MergeFolderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ComparisonTest.cs" />
-    <Compile Include="FileListingTest.cs" />
+    <Compile Include="OldTests\ComparisonTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

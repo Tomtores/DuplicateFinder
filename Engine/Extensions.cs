@@ -30,5 +30,12 @@ namespace Engine
         {
             return path.EndsWith(Path.DirectorySeparatorChar.ToString()) ? path : path + Path.DirectorySeparatorChar;
         }
+
+        internal static bool AreOnSameDrive(string pathA, string PathB)
+        { 
+            var rootA = Path.GetPathRoot(pathA);
+            var rootB = Path.GetPathRoot(PathB);
+            return string.Equals(rootA, rootB, System.StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

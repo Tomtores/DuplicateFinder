@@ -1,12 +1,6 @@
 1. IMPORTANT change background worker to thread
 2. stop trashing/reading disk when iddle
 
-improvement - rightclicking on group header brings menu to open all item folders
-
-new feature - on rightclick on file -> merge all here -> 1. deletes duplicates from other folders (both duplicates of this file and other files in same folder). 2. moves all files from other folders to the folder containing current file. 0. Display warning if there are more duplicate sets within same folder, like "folder contains X duplicates found in other folders (list folders), this will merge all the folders onto this one, continue?"
-
-
-
 feature: add selecting by string, eg ability to search folder xyz for deletion
 make bottom panels resize with window (keep/trash sections)
 feature - show image previev on hover - hold alt?

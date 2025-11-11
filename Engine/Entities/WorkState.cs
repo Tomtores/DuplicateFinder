@@ -8,6 +8,7 @@ namespace Engine.Entities
         Done,           //Program is finished and returned results.
         Error,           //An error occured, the current operation has been aborted.
         Deleting,        // deleting files
-        Marking         // calculating items to display
+        Marking,         // calculating items to display
+        Merging     // merging folders
     }
 }

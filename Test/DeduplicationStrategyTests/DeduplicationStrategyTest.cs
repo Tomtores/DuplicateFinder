@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-namespace Test
+namespace Test.DeduplicationStrategyTests
 {
     [TestClass]
     public class DeduplicationStrategyTest

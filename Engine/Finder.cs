@@ -7,14 +7,13 @@ using System.Threading.Tasks;
 using Engine.Entities;
 using Engine.FileEnumerators;
 using Engine.HashCalculators;
-using Microsoft.VisualBasic.FileIO;
 
 namespace Engine
 {
     internal class Finder : IFinder
     {
         private readonly IHashCalculator[] hashers;
-        private readonly IFileEnumerator fileFinder;
+        private readonly IFileAccessor fileAccessor;
         private ProgressStatus status;
         private Action<ProgressKind> progressUpdateCallback;
 
@@ -39,9 +38,9 @@ namespace Engine
             }
         }
 
-        public Finder(IFileEnumerator finder, params IHashCalculator[] hashers)
+        public Finder(IFileAccessor finder, params IHashCalculator[] hashers)
         {
-            this.fileFinder = finder;
+            this.fileAccessor = finder;
             this.hashers = hashers ?? new IHashCalculator[] { };
             this.status = new ProgressStatus();
         }
@@ -117,7 +116,7 @@ namespace Engine
         private IList<Duplicate> ListFiles(string[] paths, string filter, string[] ignores)
         {
             var result = new List<Duplicate>();
-            var filesIn = this.fileFinder.EnumerateFiles(paths, filter);
+            var filesIn = this.fileAccessor.EnumerateFiles(paths, filter, recursive: true);
 
             foreach (var file in filesIn)
             {
@@ -125,18 +124,18 @@ namespace Engine
                 {
                     try
                     {
-                        var info = new FileInfo(file);
-                        var duplicate = new Duplicate(info.FullName, info.Length, info.LastWriteTimeUtc);
+                        var (FullName, Length, LastWriteTimeUtc) = fileAccessor.GetFileInfo(file);
+                        var duplicate = new Duplicate(FullName, Length, LastWriteTimeUtc);
                         result.Add(duplicate);
                         this.Report(duplicate.FullName, result.Count);
                     }
-                    catch (PathTooLongException e)
+                    catch (System.IO.PathTooLongException e)
                     {
-                        throw new PathTooLongException(file, e);
+                        throw new System.IO.PathTooLongException(file, e);
                     }
-                    catch (FileNotFoundException e)
+                    catch (System.IO.FileNotFoundException e)
                     {
-                        throw new FileNotFoundException(file, e);
+                        throw new System.IO.FileNotFoundException(file, e);
                     }
                 }
             }
@@ -193,7 +192,7 @@ namespace Engine
                 this.Report(duplicate.First().FullName);
                 var result = this.CascadeCompare(duplicate, this.hashers);
                 processedSize += duplicate.Sum(d => d.Size);
-                
+
                 if (result != null && result.Any())
                 {
                     this.duplicates.AddItems(result);
@@ -245,14 +244,14 @@ namespace Engine
                 IEnumerable<Duplicate[]> items = this.duplicates.Results;
                 if (keepList != null && keepList.Any())
                 {
-                    var keepDeletions = CalculateDeletionKeepList(items, keepList);
+                    var keepDeletions = CalculateDeletionKeepList(items, keepList, msg => this.Report(msg));
                     deletions.AddRange(keepDeletions);
                     items = CalculateAfterDeleteResults(items, deletions);
                 }
 
                 if (trashList != null && trashList.Any())
                 {
-                    var trashDeletions = CalculateDeletionTrashList(items, trashList);
+                    var trashDeletions = CalculateDeletionTrashList(items, trashList, msg => this.Report(msg));
                     deletions.AddRange(trashDeletions);
                 }
             }
@@ -266,7 +265,10 @@ namespace Engine
             return deletions;
         }
 
-        private IEnumerable<string> CalculateDeletionTrashList(IEnumerable<Duplicate[]> items, IEnumerable<string> trashList)
+        /// <summary>
+        /// Returns list of duplicates that can be deleted because they exist in trash directories, but have copy in directories we are keeping.
+        /// </summary>        
+        private static IEnumerable<string> CalculateDeletionTrashList(IEnumerable<Duplicate[]> items, IEnumerable<string> trashList, Action<string> reportProgressMessage)
         {
             var results = new List<string>();
             var count = items.Count();
@@ -274,7 +276,7 @@ namespace Engine
 
             foreach (var item in items)
             {
-                this.Report("Marking: Phase B, trash entry " + current + " of " + count);
+                reportProgressMessage("Marking: Phase B, trash entry " + current + " of " + count);
                 var outside = item.Where(i => !IsInFolder(trashList, i));
 
                 if (outside.Any())  //we have at least one item outside trashzone, thus we can nuke all in trashzone
@@ -288,7 +290,10 @@ namespace Engine
             return results;
         }
 
-        private IEnumerable<string> CalculateDeletionKeepList(IEnumerable<Duplicate[]> items, IEnumerable<string> keepList)
+        /// <summary>
+        /// Returns a list of duplicates that can be deleted because they exist outside 'keep' directory.
+        /// </summary>
+        private static IEnumerable<string> CalculateDeletionKeepList(IEnumerable<Duplicate[]> items, IEnumerable<string> keepList, Action<string> reportProgressMessage)
         {
             var results = new List<string>();
             var count = items.Count();
@@ -296,7 +301,7 @@ namespace Engine
 
             foreach (var item in items)
             {
-                this.Report("Marking: Phase A, keep entry " + current + " of " + count);
+                reportProgressMessage("Marking: Phase A, keep entry " + current + " of " + count);
                 var inside = item.Where(i => IsInFolder(keepList, i));
 
                 if (inside.Any()) //we have at least one item in keep zone, thus we can nuke everything outside
@@ -328,40 +333,31 @@ namespace Engine
             return nonSingularGroups;
         }
 
-        /// <summary>
-        /// Deletes given files from duplicate list and trims orphaned entries.
-        /// </summary>
-        /// <param name="deleted"></param>
-        [Obsolete("Delete this code in next version")]
-        public IEnumerable<Exception> DeleteItems(IEnumerable<string> toDelete)
+        public async Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken)
         {
             var errors = new List<Exception>();
-            this.Report(WorkState.Deleting);
+            this.Report(WorkState.Deleting);    // todo get rid of reporting later
+            var totalFiles = toDelete.Count();
+
             try
             {
-                var totalFiles = toDelete.Count();
                 var currentFile = 1;
 
                 foreach (var item in toDelete)
                 {
-                    this.Report("Deleting file " + currentFile + " of " + totalFiles, null, totalFiles, currentFile);
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        this.Report(WorkState.Error);
+                        return new[] { new OperationCanceledException() };
+                    }
+
+                    this.Report("Deleting file " + currentFile + " of " + totalFiles, null, totalFiles, currentFile);   // todo get rid of reporting later
+                    progressCallback.Report((totalFiles, currentFile - 1, item));
+
                     try
                     {
-                        if (File.Exists(item))
-                        {
-                            if (File.GetAttributes(item).HasFlag(FileAttributes.ReadOnly))
-                            {
-                                errors.Add(new UnauthorizedAccessException(item));
-                            }
-                            else
-                            {
-                                FileSystem.DeleteFile(item, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
-                            }
-                        }
-                        else
-                        {
-                            errors.Add(new FileNotFoundException(item));
-                        }
+                        // not checking if file exists in duplicate list for performance reasons - I trust caller to not try and delete wrong things here.
+                        fileAccessor.DeleteFile(item);
                     }
                     catch (Exception e)
                     {
@@ -383,72 +379,226 @@ namespace Engine
                 throw;
             }
 
-            return errors;
-        }       
-
-        public async Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken)
-        {
-            var errors = new List<Exception>();
-            this.Report(WorkState.Deleting);    // todo get rid of reporting later
-            var totalFiles = toDelete.Count();
-
-            try
-            {                
-                var currentFile = 1;
-
-                foreach (var item in toDelete)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        this.Report(WorkState.Error);
-                        return new[] { new OperationCanceledException() };
-                    }
-
-                    this.Report("Deleting file " + currentFile + " of " + totalFiles, null, totalFiles, currentFile);   // todo get rid of reporting later
-                    progressCallback.Report((totalFiles, currentFile - 1, item));
-
-                    try
-                    {
-                        // not checking if file exists in duplicate list for performance reasons - I trust caller to not try and delete wrong things here.
-                        if (File.Exists(item))
-                        {
-                            if (File.GetAttributes(item).HasFlag(FileAttributes.ReadOnly))
-                            {
-                                errors.Add(new UnauthorizedAccessException(item));
-                            }
-                            else
-                            {
-                                FileSystem.DeleteFile(item, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
-                            }
-                        }
-                        else
-                        {
-                            errors.Add(new FileNotFoundException(item));
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        errors.Add(e);
-                    }
-
-                    currentFile++;
-                }
-
-                var results = CalculateAfterDeleteResults(this.duplicates.Results, toDelete);
-                this.duplicates.Replace(results.ToList());
-                NotifyProgress(ProgressKind.ItemList);
-
-                this.Report(WorkState.Iddle);                
-            }
-            catch (Exception)
-            {
-                this.Report(WorkState.Error);
-                throw;
-            }
-
             progressCallback.Report((totalFiles, totalFiles, null));
 
             return errors;
+        }
+
+        public MergePreview CalculateMergeIntoFolder(string targetFolderPath)
+        {
+            if (this.Duplicates == null)
+            {
+                throw new InvalidOperationException("No duplicates have been loaded yet");
+            }
+
+            // enumerate all files in other folders that are duplicates to remove
+            var duplicatesToDelete = CalculateDeletionKeepList(this.Duplicates, new[] { targetFolderPath }, msg => { });    // todo add option to skip searching duplicates in subfolders and only handle the top level directory
+
+            var affectedOtherFolders = CalculateAffectedFolders(targetFolderPath, duplicatesToDelete);
+
+            // enumerate all the files in other folders that are not duplicates, to move them into merge folder
+            var filesToMove = CalculateFilesToMove(targetFolderPath, affectedOtherFolders, duplicatesToDelete, this.fileAccessor);
+
+            // enumerate all standalone folders to move into merge folder
+            var foldersToMove = CalculateFoldersToMove(targetFolderPath, affectedOtherFolders, this.fileAccessor);
+
+            var hasInvalidFileMoves = filesToMove.Any(f => !Extensions.AreOnSameDrive(f.source, f.destination));
+            var hasInvalidDirectoryMoves = foldersToMove.Any(f => !Extensions.AreOnSameDrive(f.source, f.destination));
+
+            return new MergePreview(filesToMove, foldersToMove, duplicatesToDelete, hasInvalidFileMoves, hasInvalidDirectoryMoves);
+        }
+
+        /// <summary>
+        /// Return list of all folders that had duplicates in them and need the contents moved. If folders are nested, only top level folder will be returned.
+        /// </summary>
+        protected static IEnumerable<string> CalculateAffectedFolders(string targetFolderPath, IEnumerable<string> toDelete)
+        {
+            // get list of all folders where duplicates existed, except one we are merging into
+            var folderList = toDelete
+                .Select(d => Path.GetDirectoryName(d).AddDirSeparator())
+                .Where(d => d.StartsWith(targetFolderPath.AddDirSeparator()) == false)
+                .Distinct();
+
+            // Ensure no folders are nested within existing folders on the list - the contents will be moved with parent.
+            var orderedByNesting = folderList
+                .OrderBy(f => f.Count(c => c == Path.DirectorySeparatorChar))
+                .ThenBy(f => f);
+
+            var topLevelFolders = new List<string>();
+            foreach (var folder in orderedByNesting)
+            {
+                if (topLevelFolders.Any(tf => folder.StartsWith(tf)))
+                {
+                    continue;   // a parent folder already exists
+                }
+
+                topLevelFolders.Add(folder);
+            }
+
+            return topLevelFolders;
+        }
+
+        /// <summary>
+        /// Calculates file moves. Also handles name conflict renames.
+        /// </summary>
+        protected static IEnumerable<(string source, string destination)> CalculateFilesToMove(string targetFolderPath, IEnumerable<string> affectedFolders, IEnumerable<string> duplicatesToDelete, IFileAccessor fileAccessor)
+        {
+            // build a list of what exists in target folder (files)
+            var targetFolderFiles = fileAccessor.EnumerateFiles(new[] { targetFolderPath }, "*", recursive: false).ToList();
+            var moves = new List<(string source, string destination)>();
+
+            // enumerate files in each source folder, only top level
+            foreach (var folder in affectedFolders)
+            {
+                var folderFiles = fileAccessor.EnumerateFiles(new[] { folder }, "*", recursive: false);
+
+                // filter out duplicates we will be deleting
+                var withoutDuplicates = folderFiles.Except(duplicatesToDelete);
+
+                foreach (var file in withoutDuplicates)
+                {
+                    var newPath = GetFilenameWithoutConflicts(file, targetFolderPath, targetFolderFiles);
+                    targetFolderFiles.Add(newPath);
+                    moves.Add((file, newPath));
+                }                
+            }
+
+            return moves;
+        }
+
+        protected static IEnumerable<(string source, string destination)> CalculateFoldersToMove(string targetFolderPath, IEnumerable<string> affectedFolders,  IFileAccessor fileAccessor)
+        {
+            // build a list of what exists in target folder (subfolders)
+            var targetFolderSubfolders = fileAccessor.EnumerateDirectories(targetFolderPath)
+                .Select(d => d.AddDirSeparator())   // prevent funny business with missing terminators
+                .ToList();
+            var moves = new List<(string source, string destination)>();
+
+            // enumerate subfolders in each source folder, only top level
+            foreach (var folder in affectedFolders)
+            {
+                var subfolders = fileAccessor.EnumerateDirectories(folder).Select(d => d.AddDirSeparator());
+
+                foreach (var subfolder in subfolders)
+                {
+                    var newPath = GetDirectoryNameWithoutConflicts(subfolder, targetFolderPath, targetFolderSubfolders);
+                    targetFolderSubfolders.Add(newPath);
+                    moves.Add((subfolder, newPath));
+                }
+            }
+
+            return moves;
+        }
+
+        private static string GetFilenameWithoutConflicts(string file, string targetFolderPath, List<string> targetFolderFiles)
+        {
+            var newPath = Path.Combine(targetFolderPath, Path.GetFileName(file));
+            int counter = 1;
+
+            while (targetFolderFiles.Contains(newPath))
+            {
+                newPath = Path.Combine(targetFolderPath, $"{Path.GetFileNameWithoutExtension(file)} ({counter}){Path.GetExtension(file)}");
+
+                counter++;
+                if (counter > 1000)
+                {
+                    throw new InvalidOperationException("Could not compute alternate file name - too many files with same name exist!");
+                }
+            }
+
+            return newPath;
+        }
+
+        private static string GetDirectoryNameWithoutConflicts(string subfolder, string targetFolderPath, List<string> targetFolderSubfolders)
+        {
+            var subfolderName = Path.GetDirectoryName(subfolder.AddDirSeparator())
+                .Split(new char[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
+                .Last();
+            var newPath = Path.Combine(targetFolderPath, subfolderName).AddDirSeparator();
+            int counter = 1;
+
+            while (targetFolderSubfolders.Contains(newPath))
+            {
+                newPath = Path.Combine(targetFolderPath, $"{subfolderName} ({counter}){Path.DirectorySeparatorChar}");
+
+                counter++;
+                if (counter > 1000)
+                {
+                    throw new InvalidOperationException("Could not compute alternate folder name - too many folders with same name exist!");
+                }
+            }
+
+            return newPath;
+        }
+
+        public async Task<IEnumerable<Exception>> MergeIntoFolderAsync(MergePreview actionsToPerform, bool moveSubfolders, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken)
+        {
+            this.Report(WorkState.Merging);
+
+            var total = actionsToPerform.FilesToMove.Count() + actionsToPerform.DuplicatesToDelete.Count() + (moveSubfolders ? actionsToPerform.FoldersToMove.Count() : 0);
+            var processed = 0;
+            var exceptions = new List<Exception>();
+
+            foreach (var file in actionsToPerform.FilesToMove)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                this.Report("Moving file " + processed + " of " + total, null, total, processed);   // todo get rid of reporting later
+                progressCallback.Report((total, processed, file.source));
+
+                try
+                {
+                    this.fileAccessor.MoveFile(file.source, file.destination);
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+
+                processed++;
+            }
+
+            // need to drop duplicates before folder move, because some of themn may be in moved folders
+            var reportTotalprogress = new Progress<(int total, int processed, string filename)>(p => progressCallback.Report((total, processed + p.processed, p.filename)));
+
+            var errors = await this.DeleteItemsAsync(actionsToPerform.DuplicatesToDelete, reportTotalprogress, cancellationToken);
+            exceptions.AddRange(errors);
+
+            processed += actionsToPerform.DuplicatesToDelete.Count();   //fixup local counter
+
+            if (moveSubfolders)
+            {
+                foreach (var folder in actionsToPerform.FoldersToMove)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        throw new OperationCanceledException();
+                    }
+
+                    this.Report("Moving folder " + processed + " of " + total, null, total, processed);   // todo get rid of reporting later
+                    progressCallback.Report((total, processed, folder.source));
+
+                    try 
+                    { 
+                        this.fileAccessor.MoveDirectory(folder.source, folder.destination);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Add(ex);
+                    }
+
+                    processed++;
+                }
+            } 
+            
+            progressCallback.Report((total, processed, null));
+
+            Report(WorkState.Iddle);
+
+            return exceptions;
         }
     }
 }

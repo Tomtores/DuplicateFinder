@@ -2,7 +2,7 @@
 using Engine.HashCalculators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test
+namespace Test.HashCalculatorTests
 {
     [TestClass]
     public class CRC32CalculatorTest
@@ -36,10 +36,15 @@ namespace Test
         public void GivenDifferentSequences_ShouldGiveDifferentResults()
         {
             var file1 = new MemoryStream();
+            var writer1 = new StreamWriter(file1);
+            writer1.Write("123456789");
+            writer1.Flush();
+            file1.Position = 0;
+
             var file2 = new MemoryStream();
-            var writer = new StreamWriter(file2);
-            writer.Write("123456789");
-            writer.Flush();
+            var writer2 = new StreamWriter(file2);
+            writer2.Write("987654321");
+            writer2.Flush();
             file2.Position = 0;
 
             var result1 = CRC32Calculator.Calculate(file1);

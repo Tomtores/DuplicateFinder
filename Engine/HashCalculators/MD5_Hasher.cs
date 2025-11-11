@@ -21,17 +21,18 @@ namespace Engine.HashCalculators
         {
             try
             {
-                using (var file = new FileStream(duplicate.FullName, FileMode.Open, FileAccess.Read))
+                using (var file = new FileStream(duplicate.FullName, FileMode.Open, FileAccess.Read))   // todo abstract file access from hashers?
                 {
                     using (var md5 = string.IsNullOrWhiteSpace(this.algorithm) ? MD5.Create() : MD5.Create(this.algorithm))
                     {
-                        return Convert.ToBase64String(md5.ComputeHash(file));
+                        var hash = md5.ComputeHash(file);
+                        return Convert.ToBase64String(hash);
                     }
                 }
             }
             catch (Exception)
             {
-                return duplicate.FullName;  //return file path as hash, this should be unique and cause duplicate to be ruled-out from further flow.
+                return duplicate.FullName;  //return file path as hash, this will be unique and cause duplicate to be ruled-out from further flow.
             }
         }
     }

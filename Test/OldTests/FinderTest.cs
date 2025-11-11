@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Engine;
 using Engine.Entities;
 using Engine.FileEnumerators;
-using Engine.HashCalculators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test
+namespace Test.Oldtests
 {
     [TestClass]
     public class FinderTest
@@ -30,7 +28,7 @@ namespace Test
 
         public FinderTest()
         {
-            this.Finder = new FinderProxy(new StandardFileEnumerator(), new FakeHasher());
+            this.Finder = new FinderProxy(new StandardFileEnumerator(), new FakeHasher(null));
         }
 
         #region deletion List
@@ -210,27 +208,6 @@ namespace Test
         private static List<Duplicate[]> MakeList(params Duplicate[] dupes)
         {
             return new List<Duplicate[]>() { dupes };
-        }
-    }
-
-    internal class FinderProxy : Finder
-    {
-        public FinderProxy(IFileEnumerator finder, params IHashCalculator[] hashers)
-            : base(finder, hashers)
-        {
-        }
-
-        public IEnumerable<string> Test_CalculateDeletionList(IEnumerable<Duplicate[]> items, IEnumerable<string> trashList = null, IEnumerable<string> keepList = null)
-        {
-            base.duplicates.Replace(items.ToList());
-            return base.CalculateFilesToDelete(trashList, keepList);
-        }
-
-        public IEnumerable<Duplicate[]> Test_TrimDeleted(List<Duplicate[]> list, List<string> delitems)
-        {
-            base.duplicates.Replace(list);
-            base.DeleteItems(delitems);
-            return base.Duplicates;
         }
     }
 }
