@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -110,6 +111,7 @@ namespace DuplicateFinder
         public DuplicateFinder()
         {
             this.InitializeComponent();
+            this.Icon = Properties.Resources.ProgramIcon;
             ConfigureListView(this.isRunning);
 
             this.progressBar.Maximum = 100;
@@ -149,11 +151,11 @@ namespace DuplicateFinder
                 (send, evt) => this.AddToTrashList(path)));
             this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Add to keeplist", null,
                 (send, evt) => this.AddToKeepList(path)));
+            this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Merge ALL Here", null,
+                async (send, evt) => await this.MergeFolderAction(path)));
             this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Open containing folder", null,
                 (send, evt) => this.OpenFolder(path)));
-            this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Merge ALL Here", null,
-                async (send, evt) => this.MergeFolderAction(path)));
-
+            
             this.contextMenuStrip1.Show(Cursor.Position);
         }
 
@@ -512,7 +514,7 @@ namespace DuplicateFinder
             {
                 var progress = new Progress<(int total, int processed, string currentFile)>(p =>
                 {
-                    var percent = p.total == 0 ? 0 : (int)((p.processed / (double)p.total) * 100);
+                    var percent = p.total == 0 ? 0 : Math.Min(100, (int)(p.processed / (double)p.total) * 100);
                     this.Invoke((Action)(() =>
                     {
                         this.progressBar.Value = percent;

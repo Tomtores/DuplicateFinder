@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.FileMoveHeader = new System.Windows.Forms.Label();
             this.filesList = new System.Windows.Forms.ListBox();
             this.foldersLabel = new System.Windows.Forms.Label();
@@ -43,6 +44,7 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -68,6 +70,8 @@
             this.filesList.Name = "filesList";
             this.filesList.Size = new System.Drawing.Size(1262, 186);
             this.filesList.TabIndex = 1;
+            this.filesList.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.filesList_MouseDoubleClick);
+            this.filesList.MouseDown += new System.Windows.Forms.MouseEventHandler(this.filesList_MouseDown);
             // 
             // foldersLabel
             // 
@@ -99,6 +103,7 @@
             this.subfoldersList.Name = "subfoldersList";
             this.subfoldersList.Size = new System.Drawing.Size(1259, 186);
             this.subfoldersList.TabIndex = 4;
+            this.subfoldersList.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.subfoldersList_MouseDoubleClick);
             // 
             // duplicateheader
             // 
@@ -219,6 +224,11 @@
             this.panel3.Size = new System.Drawing.Size(1268, 214);
             this.panel3.TabIndex = 2;
             // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
+            // 
             // MergeForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -258,5 +268,6 @@
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Panel panel3;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
     }
 }

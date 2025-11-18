@@ -57,7 +57,8 @@ Result list shows files that are identical grouped into sets. Each line shows ic
 	- `"Add to keeplist"` - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.  
 	- `"Merge here"` - Advanced bulk processing functionality. Program will keep all duplicates in marked folder (even ones from other groups), delete other duplicates, like one-off "Keep List" folder, and also move everything from folders that had duplicates into the target folder. Conflicting file or folder names will be auto suffixed with number. User can opt to not move the subfolders.  
 	  Caution - program cannot move files and folders from one drive to another - if duplicates exist on different drive, you have to handle those manually first.  
-	  Use this option for merging together folders that are almost identicall but contain extra items. For safety reasons, if subfolder moved has same name as subfolder existing in target folder, it will be renamed instead of merging contents. 
+	  Use this option for merging together folders that are almost identicall but contain extra items. For safety reasons, if subfolder moved has same name as subfolder existing in target folder, it will be renamed instead of merging contents.  
+	  You can doubleclick items in the list to open them for preview. Rightclick brings menu to open containing folder.
 - You can right-click a list header and select "Open All folders" to open folder for every duplicate in given group. If multiple duplicates reside in same folder, only one folder window will be opened.  
 Once you added folders to Trash/Keep list, press `"Mark Trash"` button to preview files that will be deleted. The list will mark them in red and sort the files onto top of the list. Use `"Delete Marked"` button to remove the marked items.
 You can add folder manually to Keep/Trash list by using the buttons under the lists. Or remove/clear/sort them.
@@ -189,4 +190,7 @@ v2025.10.24 - Reworked file deletion to use async/await instead of obsolete back
 v2025.11.08 - Added Timestamp to cache info. Program will now recognize files that have been modified since last run and rehash them.  
 			  Added context menu on group headers to open all folders containing duplicate. This is similar to "Open containing folder" but executed on all files in the group at once. If multiple duplicates exist in one folder, program will only open the folder once.
 
-v2025.11.11 - Added Merge here functionality. User can now decide to delete duplicates from other folders and move accompanying files to selected folder. Useful when consolidating file folders where some of them have additional content. User can opt to skip moving subfolders. Caution - program cannot move files and folders across drives.
+v2025.11.11 - Added "Merge here" functionality. User can now decide to delete duplicates from other folders and move accompanying files to selected folder. Useful when consolidating file folders where some of them have additional content. User can opt to skip moving subfolders. Caution - program cannot move files and folders across drives.
+
+v2025.11.18 - Bugfixes.  
+              Added program icon.  

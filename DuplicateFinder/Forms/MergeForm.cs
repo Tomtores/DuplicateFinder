@@ -1,6 +1,9 @@
-﻿using Engine.Entities;
+﻿using Components;
+using Engine.Entities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -83,6 +86,54 @@ namespace DuplicateFinder.Forms
         {
             this.DialogResult = DialogResult.Cancel;
             this.Close();
+        }
+
+        private void filesList_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            int index = this.filesList.IndexFromPoint(e.Location);
+            if (index != ListBox.NoMatches)
+            {
+                var file = filesList.Items[index].ToString().Split('\t')[0];
+                Process.Start(file);
+            }
+        }
+
+        private void filesList_MouseDown(object sender, MouseEventArgs e)
+        {
+            int index = this.filesList.IndexFromPoint(e.Location);
+            
+            if (e.Button == MouseButtons.Right && index != ListBox.NoMatches)
+            {
+                var file = filesList.Items[index].ToString().Split('\t')[0];
+                
+                var path = Path.GetDirectoryName(file);
+
+                this.contextMenuStrip1.Items.Clear();
+                this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Open containing folder", null,
+                    (send, evt) => this.OpenFolder(path)));
+
+                this.contextMenuStrip1.Show(Cursor.Position);
+            }
+        }
+
+        private void OpenFolder(string path)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+                Verb = "open"
+            });
+        }
+
+        private void subfoldersList_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            int index = this.subfoldersList.IndexFromPoint(e.Location);
+            if (index != ListBox.NoMatches)
+            {
+                var folder = subfoldersList.Items[index].ToString().Split('\t')[0];
+                OpenFolder(folder);
+            }
         }
     }
 }

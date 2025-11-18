@@ -1,5 +1,14 @@
+todo next
+
+2. fix thread
+3. Using (action guard) {}
+
+
 1. IMPORTANT change background worker to thread
 2. stop trashing/reading disk when iddle
+
+
+merge function - needs a counter of how many items are being moved/deleted
 
 feature: add selecting by string, eg ability to search folder xyz for deletion
 make bottom panels resize with window (keep/trash sections)
