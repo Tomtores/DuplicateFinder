@@ -1,4 +1,5 @@
-﻿using DuplicateFinder.Configuration;
+﻿using Engine;
+using Engine.Infrastructure;
 using System;
 using System.Threading;
 using System.Windows.Forms;
@@ -7,10 +8,14 @@ namespace DuplicateFinder.Forms
 {
     public partial class TrimCacheDialog : Form
     {
-        Thread trimmer;
+        private readonly ILogger logger;
+        private readonly Guid? installationSalt;
+        Thread trimmer;        
 
-        public TrimCacheDialog()
+        public TrimCacheDialog(Guid? installationSalt, ILogger logger)
         {
+            this.installationSalt = installationSalt;
+            this.logger = logger;
             InitializeComponent();
         }
 
@@ -28,7 +33,7 @@ namespace DuplicateFinder.Forms
         {
             try
             {
-                FinderConfigurator.TrimCache(UpdateProgress); // this will hang by design
+                FinderFactory.TrimCache(UpdateProgress, installationSalt, logger); // this will hang by design
             }
             catch (ThreadAbortException)
             {
@@ -64,6 +69,7 @@ namespace DuplicateFinder.Forms
             else
             {
                 this.trimBtn.Enabled = true;
+                this.cancelBtn.Enabled = false;
             }
         }
 

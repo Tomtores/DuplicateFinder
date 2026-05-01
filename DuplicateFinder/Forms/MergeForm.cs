@@ -1,4 +1,5 @@
 ﻿using Components;
+using DuplicateFinder.Utils;
 using Engine.Entities;
 using System;
 using System.Collections.Generic;
@@ -94,7 +95,29 @@ namespace DuplicateFinder.Forms
             if (index != ListBox.NoMatches)
             {
                 var file = filesList.Items[index].ToString().Split('\t')[0];
-                Process.Start(file);
+
+                var extension = Path.GetExtension(file);
+                if (SecurityTool.IsExecutable(extension))
+                {
+                    var result = MessageBox.Show(this,
+                        "You are trying to open an executable file.\nExecutable files can harm your computer.\n\nPress 'OK' to open containing folder instead, press 'Cancel' to abandon action",
+                        "Insecure action prevented",
+                        MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Stop);
+                    if (result == DialogResult.OK)
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = Path.GetDirectoryName(file),
+                            UseShellExecute = true,
+                            Verb = "open"
+                        });
+                    }
+                }
+                else
+                {
+                    Process.Start(file);
+                }
             }
         }
 

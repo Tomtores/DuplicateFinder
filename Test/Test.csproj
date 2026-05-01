@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="HashCalculatorTests\CRC32CalculatorTest.cs" />
     <Compile Include="DeduplicationStrategyTests\DeduplicationStrategyTest.cs" />
+    <Compile Include="HashCalculatorTests\HashCacheTests.cs" />
     <Compile Include="MergeFoldersTests\CalculateAffectedFolders_Tests.cs" />
     <Compile Include="MergeFoldersTests\CalculateFilesToMove_Tests.cs" />
     <Compile Include="MergeFoldersTests\CalculateFoldersToMove.cs" />

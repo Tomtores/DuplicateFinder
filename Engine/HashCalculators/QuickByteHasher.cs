@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Engine.Entities;
+using Engine.Infrastructure;
 
 namespace Engine.HashCalculators
 {
@@ -10,23 +11,25 @@ namespace Engine.HashCalculators
     internal class QuickByteHasher : IHashCalculator
     {
         private readonly int sampleSize;
-        private readonly int skipSize;
+        private readonly long skipSize;
+        private readonly ILogger logger;
 
-        /// <param name="sampleSize">Max number of bytes to read from file. Will be less if file is shorter. Default 64.</param>
-        /// <param name="skipSize">File size in bytes. Files under this size will be skipped (not opened, hash returns empty string). Default is 0 (nothing skipped).</param>
+        /// <param name="sampleSize">Max number of bytes to read from file. Will be less if file is shorter. Default 8.</param>
+        /// <param name="skipSize">File size in bytes. Files up to this size will be skipped (not opened, hash returns empty string). Default is 0 (nothing skipped).</param>
         /// <remarks>In some cases it may be more efficient to not "peek" into small files that can be loaded in single read (mft/one cluster),
         /// and just calculate full crc in next step.</remarks>
-        public QuickByteHasher(int sampleSize = 64, int skipSize = 0)   //todo reduce quickbyte size to 16 (equal to md5)
+        public QuickByteHasher(int sampleSize = 8, long skipSize = 0, ILogger logger = null)   
         {
             this.sampleSize = sampleSize;
             this.skipSize = skipSize;
+            this.logger = logger ?? new NullLogger();
         }
 
-        public string ComputeHash(Duplicate duplicate)
+        public byte[] ComputeHash(Duplicate duplicate)
         {
-            if (duplicate.Size < this.skipSize)
+            if (duplicate.Size <= this.skipSize)
             {
-                return string.Empty;    //Do not check the file, return empty hash.
+                return new byte[this.sampleSize];    // Do not check the file, return empty hash.
             }
 
             var seekingPosition = this.CalculateSeekingPosition(duplicate.Size);
@@ -44,12 +47,13 @@ namespace Engine.HashCalculators
                     }
                     while (read < this.sampleSize && read < duplicate.Size);
 
-                    return Convert.ToBase64String(buffer);
+                    return buffer;
                 }
             }
-            catch(Exception)
+            catch(Exception e)
             {
-                return duplicate.FullName;  //return file path as hash, this should be unique and cause duplicate to be ruled-out from further flow.
+                logger.Warning($"QuickByte: Error accessing file {duplicate.FullName}. {e.Message}");
+                return null; 
             }
         }
 

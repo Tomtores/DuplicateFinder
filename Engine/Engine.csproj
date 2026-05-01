@@ -39,6 +39,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cache\CachedFinderDecorator.cs" />
     <Compile Include="Cache\CachedHasherDecorator.cs" />
     <Compile Include="Cache\ChecksumKind.cs" />
     <Compile Include="Cache\HashCache.cs" />
@@ -66,6 +67,8 @@
     <Compile Include="Entities\ProgressStatus.cs" />
     <Compile Include="IDuplicateResults.cs" />
     <Compile Include="IFinder.cs" />
+    <Compile Include="Infrastructure\ILogger.cs" />
+    <Compile Include="Infrastructure\NullLogger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

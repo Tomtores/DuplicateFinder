@@ -271,7 +271,7 @@
             // configPanelToolStripMenuItem
             // 
             this.configPanelToolStripMenuItem.Name = "configPanelToolStripMenuItem";
-            this.configPanelToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.configPanelToolStripMenuItem.Size = new System.Drawing.Size(142, 22);
             this.configPanelToolStripMenuItem.Text = "Config Panel";
             this.configPanelToolStripMenuItem.Click += new System.EventHandler(this.configPanelToolStripMenuItem_Click);
             // 
@@ -333,6 +333,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "DuplicateFinder";
             this.Text = "Duplicate Finder";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.DuplicateFinder_FormClosing);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.panel1.ResumeLayout(false);

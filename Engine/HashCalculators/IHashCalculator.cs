@@ -6,6 +6,6 @@ namespace Engine.HashCalculators
     /// </summary>
     public interface IHashCalculator
     {
-        string ComputeHash(Duplicate duplicate);
+        byte[] ComputeHash(Duplicate duplicate);
     }
 }

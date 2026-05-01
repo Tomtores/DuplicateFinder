@@ -89,7 +89,6 @@
     <Compile Include="Forms\ConfigPanel.Designer.cs">
       <DependentUpon>ConfigPanel.cs</DependentUpon>
     </Compile>
-    <Compile Include="Configuration\FinderConfigurator.cs" />
     <Compile Include="ListItems\DuplicateViewItem.cs" />
     <Compile Include="ListItems\DuplicateViewItemHeader.cs" />
     <Compile Include="Enums\ColumnNames.cs" />
@@ -124,6 +123,8 @@
     <Compile Include="Forms\ResultsView.Designer.cs">
       <DependentUpon>ResultsView.cs</DependentUpon>
     </Compile>
+    <Compile Include="Utils\Logger.cs" />
+    <Compile Include="Utils\SecurityTool.cs" />
     <Compile Include="Utils\SortRecordsFilter.cs" />
     <EmbeddedResource Include="Forms\ConfigPanel.resx">
       <DependentUpon>ConfigPanel.cs</DependentUpon>

@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualBasic.FileIO;
+﻿using Engine.Infrastructure;
+using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +15,12 @@ namespace Engine.FileEnumerators
     {
         public const int MAX_PATH = 248;
         public const int MAX_FILENAME = 260;
+        private ILogger logger;
+
+        public SafeFileEnumerator(ILogger logger = null)
+        {
+            this.logger = logger ?? new NullLogger();
+        }
 
         public void DeleteFile(string item)
         {
@@ -34,7 +41,7 @@ namespace Engine.FileEnumerators
         {
             var result = new List<string>();
 
-            //Hack: fix issues with directories having "funny" names (like single character Alt+0160) being interpreted as whitespace and trimmed.
+            // Hack: fix issues with directories having "funny" names (like single character Alt+0160) being interpreted as whitespace and trimmed.
             var safePath = folderPath.AddDirSeparator();
 
             try
@@ -42,10 +49,11 @@ namespace Engine.FileEnumerators
                 var dirs = Directory.EnumerateDirectories(safePath, "*", System.IO.SearchOption.TopDirectoryOnly);
                 result.AddRange(dirs);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException e)
             {
                 // Unable to list subdirs, so skip them.
                 // This should support traversal scenario.
+                logger.Warning($"Acces denied when indexing {safePath}. {e.Message}");
             }
 
             return result;
@@ -126,7 +134,7 @@ namespace Engine.FileEnumerators
         {
             var result = Enumerable.Empty<string>();
 
-            //Hack: fix issues with directories having "funny" names (like single character Alt+0160) being interpreted as whitespace and trimmed.
+            // Hack: fix issues with directories having "funny" names (like single character Alt+0160) being interpreted as whitespace and trimmed.
             var safePath = path.AddDirSeparator();
 
             if (safePath.Length > MAX_PATH)
@@ -149,9 +157,10 @@ namespace Engine.FileEnumerators
                 var files = Directory.EnumerateFiles(safePath, filter, System.IO.SearchOption.TopDirectoryOnly);
                 result = result.Concat(files);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException e)
             {
                 // Unable to list folder files, skip them.
+                logger.Warning($"Acces denied when indexing {safePath}. {e.Message}");
             }
 
             if (recursive)
@@ -161,10 +170,11 @@ namespace Engine.FileEnumerators
                     var dirs = Directory.EnumerateDirectories(safePath, "*.*", System.IO.SearchOption.TopDirectoryOnly);
                     result = result.Concat(dirs.SelectMany(d => EnumerateFiles(d, filter, recursive)));
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException e)
                 {
                     // Unable to list subdirs, so skip them.
                     // This should support traversal scenario.
+                    logger.Warning($"Acces denied when indexing {safePath}. {e.Message}");
                 }
             }
 

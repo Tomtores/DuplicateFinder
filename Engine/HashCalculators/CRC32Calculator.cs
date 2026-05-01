@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace Engine.HashCalculators
@@ -42,20 +43,25 @@ namespace Engine.HashCalculators
             return table;
         }
 
-        public static uint Calculate(Stream file)
+        public static uint Calculate(Stream file, Guid? salt)
         {
-            var crc32 = 0xffffffff;  //complement it for good start
+            var crc32 = 0xffffffff;  // complement it for good start
+            if (salt != null)
+            {
+                crc32 = (uint)salt.Value.GetHashCode(); // initialize start vector with salt to prevent precomputed hash comparisons
+            }
+
             int data;
             while ((data = file.ReadByte()) != -1)
             {
                 crc32 = crcTable[(byte)(crc32 ^ data)] ^ (crc32 >> 8);
-                //a lot of magic happens here:
-                //first, we add (xor) the new byte into the crc and cast the result to byte to get index for table
-                //then we take precalculated value from the table
-                //finally we shift our crc register 8 bits right at once and xor in the result
+                // a lot of magic happens here:
+                // first, we add (xor) the new byte into the crc and cast the result to byte to get index for table
+                // then we take precalculated value from the table
+                // finally we shift our crc register 8 bits right at once and xor in the result
             }
 
-            return ~crc32;  //result xored (complement)
+            return ~crc32;  // result xored (complement)
         }
     }
 }

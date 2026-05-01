@@ -9,6 +9,7 @@ using Engine.Entities;
 using DuplicateFinder;
 using DuplicateFinder.Enums;
 using System.Threading.Tasks;
+using DuplicateFinder.Utils;
 
 namespace Components
 {
@@ -83,7 +84,7 @@ namespace Components
             this.thumbsize = Math.Min(256, thumbsize);
             this.showPreview = previewEnabled;
             ConfigureColumns(countDirectoryFiles);
-                        
+
             if (showPreview)
             {
                 this.imageList1.ImageSize = new Size(this.thumbsize, this.thumbsize);
@@ -140,8 +141,30 @@ namespace Components
                 {
                     // do nothing
                 }
+                else
                 {
-                    Process.Start(item.FullName);
+                    var extension = Path.GetExtension(item.FullName);
+                    if (SecurityTool.IsExecutable(extension))
+                    {
+                        var result = MessageBox.Show(
+                            "You are trying to open an executable file.\nExecutable files can harm your computer.\n\nPress 'OK' to open containing folder instead, press 'Cancel' to abandon action",
+                            "Insecure action prevented",
+                            MessageBoxButtons.OKCancel,
+                            MessageBoxIcon.Stop);
+                        if (result == DialogResult.OK)
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = item.DirectoryName,
+                                UseShellExecute = true,
+                                Verb = "open"
+                            });
+                        }
+                    }
+                    else
+                    {
+                        Process.Start(item.FullName);
+                    }
                 }
             }
         }
@@ -244,7 +267,7 @@ namespace Components
             {
                 result.SubItems.Add(this.folderFileCount.GetDirectoryFileCount(casted.DirectoryName).ToString());   // total folder file count   
             }
-            
+
             result.SubItems.Add(casted.Size.ToString());    // size column
 
             if (!showPreview)
@@ -281,7 +304,7 @@ namespace Components
                 try
                 {
                     var image = Image.FromFile(duplicate.FullName);
-                    thumb = image.GetThumbnailImage(thumbsize, thumbsize, null, IntPtr.Zero);                    
+                    thumb = image.GetThumbnailImage(thumbsize, thumbsize, null, IntPtr.Zero);
                 }
                 finally
                 {
@@ -295,6 +318,6 @@ namespace Components
         private void SizeFirstColumn(ListView lv)
         {
             lv.Columns[0].Width = lv.Width - lv.Columns[1].Width - lv.Columns[2].Width - (lv.Columns.Count > 3 ? lv.Columns[3].Width : 0) - SystemInformation.VerticalScrollBarWidth - 5;
-        }        
+        }
     }
 }

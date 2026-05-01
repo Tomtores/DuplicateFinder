@@ -1,6 +1,5 @@
 ﻿using Components;
 using DuplicateFinder.Commands;
-using DuplicateFinder.Configuration;
 using DuplicateFinder.Enums;
 using DuplicateFinder.Forms;
 using DuplicateFinder.Utils;
@@ -10,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -25,8 +23,12 @@ namespace DuplicateFinder
     public partial class DuplicateFinder : Form
     {
         private FinderSettings settings = FinderSettings.GetInstance();
+        private readonly Logger logger = new Logger(SourceLevels.Warning);
 
         private IFinder finder;
+
+        private const string ProgramName = "Duplicate Finder";
+        private const long fileSizeLimit = 1024 * 4; // bytes, files smaller will never be cached or peeked by quick hasher. Using 4Kb as it is common cluster size.
 
         private ColumnNames sortColumn = ColumnNames.None;
         private bool sortAscending = false;
@@ -75,6 +77,20 @@ namespace DuplicateFinder
             }
         }
 
+        private void UpdateProgressBar(int value)
+        {
+            var valueSafe = Math.Min(Math.Max(value, 0), 100);
+            this.progressBar.Value = valueSafe;
+            if (valueSafe > 0 && valueSafe < 100)
+            {
+                this.Text = $"{ProgramName} ({valueSafe}%)";
+            }
+            else
+            {
+                this.Text = ProgramName;
+            }
+        }
+
         #endregion
 
         private IEnumerable<string> deletionList = Enumerable.Empty<string>();
@@ -112,6 +128,7 @@ namespace DuplicateFinder
         {
             this.InitializeComponent();
             this.Icon = Properties.Resources.ProgramIcon;
+            this.Text = ProgramName;
             ConfigureListView(this.isRunning);
 
             this.progressBar.Maximum = 100;
@@ -119,6 +136,9 @@ namespace DuplicateFinder
 
             this.timer = new Timer { Interval = 100 };
             this.timer.Tick += this.timer1_Tick;
+
+            // todo first run ask for cache enable.
+            // todo remove warning in config panel?
 
             this.paths = this.settings.ScanPaths;
             this.ignoreBox.Text = this.settings.Ignores;
@@ -155,7 +175,7 @@ namespace DuplicateFinder
                 async (send, evt) => await this.MergeFolderAction(path)));
             this.contextMenuStrip1.Items.Add(new ToolStripMenuItem("Open containing folder", null,
                 (send, evt) => this.OpenFolder(path)));
-            
+
             this.contextMenuStrip1.Show(Cursor.Position);
         }
 
@@ -253,7 +273,7 @@ namespace DuplicateFinder
             {
                 this.folderFileCountCache.ClearCache();  // wipe the cache when starting anew
 
-                this.finder = FinderConfigurator.GetFinder(this.settings);
+                this.finder = FinderFactory.CreateConfiguredInstance(this.settings.UseCRC, this.settings.UseHashCaching, fileSizeLimit, this.settings.HashSalt, this.logger);
 
                 this.deletionList = Enumerable.Empty<string>();
 
@@ -335,6 +355,7 @@ namespace DuplicateFinder
                         try
                         {
                             this.finder.FindDuplicates(parameters.Paths, "*.*", parameters.Ignored, ProgressUpdateCallback, parameters.Settings.IgnoreEmpty, parameters.Settings.MinSizeKB, parameters.Settings.MaxSizeKB);
+                            logger.Flush();
                         }
                         catch (PathTooLongException exception)  //Using msgbox within thread looks evil
                         {
@@ -356,14 +377,6 @@ namespace DuplicateFinder
             this.WorkerThread.Start(arguments.Argument);
 
             this.WorkerThread.Join();
-            try
-            {
-                FinderConfigurator.FlushCache();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
 
             if (this.WorkerThread.ThreadState == ThreadState.Aborted)
             {
@@ -401,7 +414,7 @@ namespace DuplicateFinder
 
             var locale = new NumberFormatInfo() { NumberGroupSeparator = " " };
 
-            this.progressBar.Value = status.Progress;
+            UpdateProgressBar(status.Progress);
             var dupeCount = this.finder.Duplicates.Sum(r => r.Length);
             var fileStatusFragment = $"{status.FilesFound.ToString("N0", locale)} files, {dupeCount.ToString("N0", locale)} dupes";
             var dupeSize = this.finder.Duplicates.Sum(r => r.Sum(i => i.Size));
@@ -468,12 +481,13 @@ namespace DuplicateFinder
                     var percent = p.total == 0 ? 0 : (int)((p.processed / (double)p.total) * 100);
                     this.Invoke((Action)(() =>
                     {
-                        this.progressBar.Value = percent;
+                        UpdateProgressBar(percent);
                         this.filesStatus.Text = $"Deleting files: {p.processed} of {p.total} - {p.currentFile}";
                     }));
                 });
 
                 var errors = await this.finder.DeleteItemsAsync(deletionItems, progress, this.deleteFilesCancellationToken.Token);
+                logger.Flush();
 
                 if (errors.Any())
                 {
@@ -481,7 +495,6 @@ namespace DuplicateFinder
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
-                FinderConfigurator.RemoveFromCache(deletionItems);
                 foreach (var item in deletionItems)
                 {
                     this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
@@ -517,12 +530,13 @@ namespace DuplicateFinder
                     var percent = p.total == 0 ? 0 : Math.Min(100, (int)(p.processed / (double)p.total) * 100);
                     this.Invoke((Action)(() =>
                     {
-                        this.progressBar.Value = percent;
+                        UpdateProgressBar(percent);
                         this.filesStatus.Text = $"Merging folders: {p.processed} of {p.total} - {p.currentFile}";
                     }));
                 });
 
                 var errors = await this.finder.MergeIntoFolderAsync(preview, moveSubfolders, progress, this.deleteFilesCancellationToken.Token);
+                logger.Flush();
 
                 if (errors.Any())
                 {
@@ -530,7 +544,6 @@ namespace DuplicateFinder
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
-                FinderConfigurator.RemoveFromCache(preview.DuplicatesToDelete);
                 foreach (var item in preview.DuplicatesToDelete)
                 {
                     this.folderFileCountCache.NotifyItemRemoved(Path.GetDirectoryName(item));
@@ -636,7 +649,7 @@ namespace DuplicateFinder
 
         private void configPanelToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var config = new ConfigPanel(this.settings);
+            var config = new ConfigPanel(this.settings, this.logger);
             config.StartPosition = FormStartPosition.CenterParent;
             var result = config.ShowDialog();
             if (result == DialogResult.OK)
@@ -663,6 +676,11 @@ namespace DuplicateFinder
             this.ConfigureListView(this.isRunning);
             this.resultsView1.DeletionList = this.deletionList;
             this.resultsView1.Items = this.FilteredResults;
+        }
+
+        private void DuplicateFinder_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.logger.Flush();
         }
     }
 }

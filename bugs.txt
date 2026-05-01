@@ -1,5 +1,19 @@
 todo next
 
+0. change cache format to binary
+1. Make finder methods async and get rid of background worker
+
+
+
+add: quick filter for the result list
+
+scan folder does not exist should say which folder!
+
+warn: what if merge folders has other folder with duplicates that are dupes of something outside target and other source folders? do they get moved to target? deleted?
+
+usability - saving search folder sets (and loading) -> useful for scanning multiple known sets of data
+
+1. folder comparison mode
 2. fix thread
 3. Using (action guard) {}
 

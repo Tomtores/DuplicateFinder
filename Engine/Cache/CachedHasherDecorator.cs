@@ -6,9 +6,9 @@ namespace Plugins.Cache
 {
     class CachedHasherDecorator : IHashCalculator
     {
-        private IHashCache cache;
-        private ChecksumKind hashName;
-        private IHashCalculator decoratedObject;
+        private readonly IHashCache cache;
+        private readonly ChecksumKind hashName;
+        private readonly IHashCalculator decoratedObject;
 
         public CachedHasherDecorator(IHashCalculator decoratedObject, ChecksumKind hashName, IHashCache cache)
         {
@@ -17,17 +17,17 @@ namespace Plugins.Cache
             this.hashName = hashName;
         }
 
-        public string ComputeHash(Duplicate duplicate)
+        public byte[] ComputeHash(Duplicate duplicate)
         {
             // get hash from cache
             var cached = cache.GetHash(duplicate.FullName, duplicate.Size, hashName, duplicate.Timestamp);
-            if (!string.IsNullOrWhiteSpace(cached))
+            if (cached != null)
             {
                 return cached;
             }
 
             var hash = this.decoratedObject.ComputeHash(duplicate);
-
+            
             cache.Store(duplicate.FullName, duplicate.Size, hashName, hash, duplicate.Timestamp);
 
             return hash;

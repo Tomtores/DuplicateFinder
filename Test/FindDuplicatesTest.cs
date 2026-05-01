@@ -1,5 +1,6 @@
 ﻿using Engine;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Linq;
 using System.Text;
 
 namespace Test
@@ -30,9 +31,18 @@ namespace Test
         }
 
         [TestMethod]
-        public void Test1()
+        public void GivenDuplicateFiles_ShouldFindOneDuplicate()
         {
+            // act
             _finder.FindDuplicates(paths, filter, ignored);
+            var results = _finder.Duplicates;
+
+            // assert
+            Assert.AreEqual(1, results.Count());
+            var duplicates = results.First();
+            Assert.AreEqual(2, duplicates.Length);
+            Assert.IsTrue(duplicates.Any(d => d.FullName == @"Z:\TestFolder\File1.txt"));
+            Assert.IsTrue(duplicates.Any(d => d.FullName == @"Z:\AnotherFolder\Nested folder with space\File3.txt"));
         }        
     }
 }

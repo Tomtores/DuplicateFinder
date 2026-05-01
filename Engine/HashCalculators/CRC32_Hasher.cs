@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Engine.Entities;
+using Engine.Infrastructure;
 
 namespace Engine.HashCalculators
 {
@@ -9,18 +10,29 @@ namespace Engine.HashCalculators
     /// </summary>
     internal class CRC32_Hasher : IHashCalculator
     {
-        public string ComputeHash(Duplicate duplicate)
+        private readonly Guid? _salt;
+        private readonly ILogger _logger;
+
+        public CRC32_Hasher(Guid? salt = null, ILogger logger = null)
+        {
+            _salt = salt;
+            _logger = logger ?? new NullLogger();
+        }
+
+        public byte[] ComputeHash(Duplicate duplicate)
         {
             try
             {
                 using (var file = new FileStream(duplicate.FullName, FileMode.Open, FileAccess.Read))
                 {
-                    return CRC32Calculator.Calculate(file).ToString();
+                    var hash = CRC32Calculator.Calculate(file, _salt);
+                    return BitConverter.GetBytes(hash);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                return duplicate.FullName;  //return file path as hash, this is unique and will cause duplicate to be ruled-out from further flow.
+                _logger.Warning($"CRC32: Failed to access file {duplicate.FullName}. {e.Message}");
+                return null;
             }
         }
     }

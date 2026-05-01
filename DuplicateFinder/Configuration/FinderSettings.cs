@@ -94,6 +94,11 @@ namespace DuplicateFinder
             {
                 _settings = defaultSettings;
             }
+
+            if (UseHashCaching)
+            {
+                EnsureSalt(true);
+            }
         }
 
         private void WriteOutFile()
@@ -151,11 +156,37 @@ namespace DuplicateFinder
         {
             get
             {
-                return GetValue<bool>(SettingNames.UseHashCaching);
+                var value = GetValue<bool>(SettingNames.UseHashCaching);
+                EnsureSalt(value);
+                return value;
             }
             set
             {
                 SetValue(SettingNames.UseHashCaching, value);
+                EnsureSalt(value);                
+            }
+        }
+
+        public Guid? HashSalt
+        {
+            get { 
+                var value = GetValue<string>(SettingNames.HashSalt); 
+                if (value == null)
+                {
+                    return null;
+                }
+
+                return Guid.Parse(value);
+            }
+
+            set => SetValue(SettingNames.HashSalt, value?.ToString());
+        }
+
+        public void EnsureSalt(bool cacheEnabled) 
+        { 
+            if (cacheEnabled && HashSalt == null)
+            {
+                HashSalt = Guid.NewGuid();
             }
         }
 
@@ -269,6 +300,7 @@ namespace DuplicateFinder
             public const string IgnoreEmpty = "IgnoreEmpty";
             public const string CountDirectoryFiles = "CountDirectoryFiles";
             public const string UseHashCaching = "UseHashCaching";
+            public const string HashSalt = "HashSalt";
             public const string MinSize = "MinSize";
             public const string MaxSize = "MaxSize";
             public const string LastDir = "LastDir";

@@ -4,6 +4,12 @@
 Do you have thousands of files scattered throughout your hard drive and can't tell which ones you have copied five times over? This is a tool for finding that.
 Given no existing software provided interface or performance I would like, I decided to create my own.  
 
+# Requirements
+
+- Windows 7 or newer
+- .NET Framework 4.7.2 - 4.8
+- Mouse
+- Keyboard (optional, required for manual delete function)
 
 # How to use:
 
@@ -30,7 +36,7 @@ Available options and what they do:
 - `"Use CRC32"` - This is an older algorithm for calculating file hashes. It may be faster on very old machines that do not support MD5 in hardware. If unchecked, program will use MD5.
 - `"Ignore empty files"` - Files with size = 0 will be ignored. You will be surprised how many empty files one can have, and they will all register as duplicates, because empty equals empty.
 - `"Count folder files"` - (**Warning - negatively affects performance!**) This will add counter showing how many files the folder contains, in addition to how many duplicate files are in the folder. Useful if you are trying to decide between "All photos 2025" and "That trip to Rome" folders. Affects performance because it needs to read contents of every folder.
-- `"Use hash caching"` - (**WARNING: Privacy risk!**) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy risks. The cache file will store a standardized checksum of all files that have been identified as duplicates. If a hostile agent gets access to this file they can determine what uniquely identifiable files were present on your computer at given time. If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.  	
+- `"Use hash caching"` - (**WARNING: Privacy risk!**) Enable to cache the file checksums. This greatly speeds up repeated scans, but has privacy risks. The cache file will store a name and full path of every file identified as duplicates. If a hostile agent gets access to this file, they can determine what files were present on your computer at given time, their size, and the file salted checksum ("salted" means they can confirm file identity if they have the original file, but they will not be able to search the file in public database to find what was inside). If you store/process files that you do not want anyone else to know about, do not enable this option. You can delete the cache with "Delete cache" button or manually remove the "cache.tsv" from program folder.  	
 - `"Size"` boxes. Input minimum and maximum size of files to scan, in kilobytes. Do note that windows shows files smaller than 1024 bytes as 1kb. Program will use the true size. Leave the first box blank if you want to scan files smaller than 1kb.
 - `"Preview enabled"` - (Warning - negatively affects performance) Enables thumbnails for duplicate list. This can be handy if you need to see what the file contains before deciding which folder it should go into. Experimental, may slow down program significantly or even crash it.
 
@@ -50,16 +56,17 @@ Result list shows files that are identical grouped into sets. Each line shows ic
 - Duplicate count column shows how many duplicate sets are in the folder where the file is located. If it says 4, that means four of the files have a duplicate somewhere in another folder. This will be useful when bulk marking below.
 - You can sort the columns by clicking headers. First column will sort by filepath (useful if you want to process duplicates from given drive first).
 - You can mark a file and press "delete" button on keyboard to delete marked file.
-- You can select multiple files using ctrl or shift keys and delete them this way as well. Do take care that if you select all the entries in a group, you will be deleting ALL copies of the file from your drive. Do this only when you are ceratin all the copies are junk.
+- You can select multiple files using ctrl or shift keys and delete them this way as well. Do take care that if you select all the entries in a group, you will be deleting ALL copies of the file from your drive. Do this only when you are certain all the copies are junk.
 - You can right-click any of the files for following options:
 	- `"Open containing folder"` - opens new explorer window with the folder the file is located in. You can asses if this is the folder you want to keep the file in. If you do any manual changes to files - deletion, renames, moving folders, please rerun the scan so the program can update the list.
 	- `"Add to trashlist"` - this will mark the whole folder as trash - all duplicate files in this folder will be deleted once "Mark trash" and "Delete marked" buttons are pressed. Do note that selection is recursive (all the subfolders are affected). If all copies of the duplicate reside in the Trash folder, they will not be touched. Program never deletes the last copy (unless you do it manually).
 	- `"Add to keeplist"` - this option is reverse of the above - all files in this folder will be kept and program will delete any duplicate copies found outside the folder.  
 	- `"Merge here"` - Advanced bulk processing functionality. Program will keep all duplicates in marked folder (even ones from other groups), delete other duplicates, like one-off "Keep List" folder, and also move everything from folders that had duplicates into the target folder. Conflicting file or folder names will be auto suffixed with number. User can opt to not move the subfolders.  
 	  Caution - program cannot move files and folders from one drive to another - if duplicates exist on different drive, you have to handle those manually first.  
-	  Use this option for merging together folders that are almost identicall but contain extra items. For safety reasons, if subfolder moved has same name as subfolder existing in target folder, it will be renamed instead of merging contents.  
+	  Use this option for merging together folders that are almost identical but contain extra items. For safety reasons, if subfolder moved has same name as subfolder existing in target folder, it will be renamed instead of merging contents.  
 	  You can doubleclick items in the list to open them for preview. Rightclick brings menu to open containing folder.
 - You can right-click a list header and select "Open All folders" to open folder for every duplicate in given group. If multiple duplicates reside in same folder, only one folder window will be opened.  
+  
 Once you added folders to Trash/Keep list, press `"Mark Trash"` button to preview files that will be deleted. The list will mark them in red and sort the files onto top of the list. Use `"Delete Marked"` button to remove the marked items.
 You can add folder manually to Keep/Trash list by using the buttons under the lists. Or remove/clear/sort them.
 
@@ -70,7 +77,7 @@ You can add folder manually to Keep/Trash list by using the buttons under the li
 
 ## x. How does the file comparing works?
 Program compares the file size (different sizes = different files), then calculates the checksum of the file. If checksums match, the files are considered identical.
-There is some speedup magic included for larger files - program will compare small chunk from middle of the files to determine if they have the same contents, and only if the middle is identical, calculate full checksum.
+There is some speedup magic included for larger files - program will compare small chunk from middle of the files to determine if they have the same contents, and only if the middle part is identical, calculate full checksum.
 
 # FAQ
 
@@ -79,7 +86,7 @@ There is some speedup magic included for larger files - program will compare sma
 - If the file is not in recycle bin anymore, stop using the computer. If file was on system drive (usually C:), power off the machine and ask for tech help at repair shop or from knowledgeable friend. If file was on data drive, stop all programs using that drive, then google file recovery tools. Don't write anything to drive that had the file removed.
 
 ## Program doesn't recognize identical pictures.
-- Check if you have size filters on (in settings) or name filters on (top bar). Sometimes, files have different metadata in them and program will not detect them, even if they look identical to you, because bytes are different. Feel free to compare and delete them by hand. Program also does not recognize different sizes of same picture - because 3000x2000 image is different thing than 800x600 image. Image comparison is hard, you will need different tool for that.
+- Check if you have size filters on (in settings) or name filters on (top bar). Sometimes, files have different metadata in them and program will not detect them, even if they look identical to you, because bytes are different on data level. Feel free to compare and delete them by hand. Program also does not recognize different sizes of same picture - because 3000x2000 image is different thing than 800x600 image. Image comparison is hard, you will need different tool for that.
 
 ## I was doing X and program crashed.
 - My apologies. Please send me a note describing how exactly you managed to crash the program. I will most likely need some example data, if you can create a dummy folder that causes the crash. Please do not send me your actual private data.
@@ -87,7 +94,7 @@ There is some speedup magic included for larger files - program will compare sma
 
 # Change history:
 
-v0.9 - Splitted project into UI & Engine.
+v0.9 - Split project into UI & Engine.
 
 v0.9b - Fixed bug with access rights. Attempting to list files/folders that user has no rights to will no longer crash the app.
 
@@ -194,3 +201,12 @@ v2025.11.11 - Added "Merge here" functionality. User can now decide to delete du
 
 v2025.11.18 - Bugfixes.  
               Added program icon.  
+
+v2025.11.21 - Security improvements. Program now disallows opening executable files from the result and merge list. File hashes are now salted for privacy reasons. Sorry - this will wipe your current cache. 
+			  Added progress display to program main window and taskbar button.
+
+v2026.05.01 - Cache storage improvements. Files smaller than 4kb are no longer cached or hashed with QuickByte - this should significantly improve cache file size without affecting scan speed. 
+			  Cache file is now written out as temp file and rotated into original file to prevent loosing cache on crash during writing. This however will need extra free space on the disk equal to the size of the cache file. Ensure the disk on which program is located has enough free space available.
+			  Added basic logging. 
+			  Hashers now operate on byte arrays internally instead of strings.
+			  Salt is now random per program installation and is generated on first cache enable.

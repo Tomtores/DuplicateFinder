@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 using Engine.Entities;
 using Engine.FileEnumerators;
 using Engine.HashCalculators;
+using Engine.Infrastructure;
 
 namespace Engine
 {
     internal class Finder : IFinder
     {
         private readonly IHashCalculator[] hashers;
+        private readonly ILogger logger;
         private readonly IFileAccessor fileAccessor;
         private ProgressStatus status;
         private Action<ProgressKind> progressUpdateCallback;
@@ -38,10 +40,11 @@ namespace Engine
             }
         }
 
-        public Finder(IFileAccessor finder, params IHashCalculator[] hashers)
+        public Finder(IFileAccessor finder, IHashCalculator[] hashers, ILogger logger = null)
         {
             this.fileAccessor = finder;
             this.hashers = hashers ?? new IHashCalculator[] { };
+            this.logger = logger ?? new NullLogger();
             this.status = new ProgressStatus();
         }
 
@@ -106,8 +109,9 @@ namespace Engine
                 this.Report(WorkState.Done);
                 return;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                logger.Error($"Error while finding duplicates {e.Message}");
                 this.Report(WorkState.Error);
                 throw;
             }
@@ -184,8 +188,8 @@ namespace Engine
 
             var processedSize = 0L;
 
-            //ToDo: change processing from foreach to cascade. Use first hasher on the collection and evict entries with no macth. Then run the second hasher for all items.
-            //change reporting to account for multiple passes.
+            // ToDo: change processing from foreach to cascade. Use first hasher on the collection and evict entries with no macth. Then run the second hasher for all items.
+            // change reporting to account for multiple passes.
 
             foreach (var duplicate in duplicates)
             {
@@ -224,10 +228,13 @@ namespace Engine
         {
             foreach (var duplicate in duplicates)
             {
-                duplicate.Hash = hasher.ComputeHash(duplicate);
+                var hash = hasher.ComputeHash(duplicate);
+                duplicate.Hash = hash == null ? null : Convert.ToBase64String(hash); // todo change to use byte later
             }
 
-            var grouped = duplicates.GroupBy(g => g.Hash);
+            var grouped = duplicates
+                .Where(d => d.Hash != null)    // null equals error when computing - access denied, not found etc, strip them from results
+                .GroupBy(d => d.Hash);
 
             return grouped.Where(g => g.Count() > 1).Select(g => g.ToArray());
         }
@@ -255,8 +262,9 @@ namespace Engine
                     deletions.AddRange(trashDeletions);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                logger.Error($"Error while calculating files to delete based on keep/trash lists. {e.Message}");
                 this.Report(WorkState.Error);
                 throw;
             }

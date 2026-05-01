@@ -4,6 +4,7 @@ using System.Linq;
 using Engine;
 using Engine.HashCalculators;
 using Engine.FileEnumerators;
+using System;
 
 namespace Test.Oldtests
 {
@@ -32,7 +33,7 @@ namespace Test.Oldtests
         [TestMethod]
         public void GivenFakeHasher_FinderDiferentiatesBySize()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new FakeHasher(null));
+            var finder = new Finder(new StandardFileEnumerator(), new[] { new FakeHasher(null) });
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;
@@ -44,7 +45,7 @@ namespace Test.Oldtests
         [TestMethod]
         public void GivenMD5Hasher_ShouldTellFilesCorrectly()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new MD5_Hasher());
+            var finder = new Finder(new StandardFileEnumerator(), new[] { new MD5_Hasher() });
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;
@@ -56,7 +57,7 @@ namespace Test.Oldtests
         [TestMethod]
         public void GivenCRC32Hasher_ShouldTellFilesCorrectly()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new CRC32_Hasher());
+            var finder = new Finder(new StandardFileEnumerator(), new[] { new CRC32_Hasher(salt: Guid.NewGuid()) });
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;
@@ -68,7 +69,7 @@ namespace Test.Oldtests
         [TestMethod]
         public void GivenQuickByteHasher_ShouldRejectFullyDifferentFile()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new QuickByteHasher());
+            var finder = new Finder(new StandardFileEnumerator(), new[] { new QuickByteHasher() });
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;
@@ -80,7 +81,7 @@ namespace Test.Oldtests
         [TestMethod]
         public void GivenCRCAndFakeHasher_ShouldShouldUseInSequence()
         {
-            var finder = new Finder(new StandardFileEnumerator(), new MD5_Hasher(), new FakeHasher(null));
+            var finder = new Finder(new StandardFileEnumerator(), new IHashCalculator[] { new MD5_Hasher(), new FakeHasher(null) });
 
             finder.FindDuplicates(TestDataPaths, "*.*", new string[0]);
             var result = finder.Duplicates;

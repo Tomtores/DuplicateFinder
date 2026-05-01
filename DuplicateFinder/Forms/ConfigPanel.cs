@@ -1,4 +1,5 @@
 ﻿using DuplicateFinder.Forms;
+using Engine.Infrastructure;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -9,10 +10,14 @@ namespace DuplicateFinder
 {
     public partial class ConfigPanel : Form
     {
+        private readonly ILogger logger;
+
         private FinderSettings Settings { get; set; }
 
-        public ConfigPanel(FinderSettings settings)
+        public ConfigPanel(FinderSettings settings, ILogger logger)
         {
+            this.logger = logger;
+
             InitializeComponent();
             this.versionLabel.Text = "Version " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly‌​().Location).ProductVersion; 
             this.Settings = settings;
@@ -98,7 +103,7 @@ namespace DuplicateFinder
             }
             else
             {
-                var dialog = new TrimCacheDialog();
+                var dialog = new TrimCacheDialog(this.Settings.HashSalt, logger);
                 dialog.StartPosition = FormStartPosition.CenterParent;
                 dialog.ShowDialog();
             }

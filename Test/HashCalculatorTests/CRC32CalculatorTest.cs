@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Engine.HashCalculators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -12,7 +13,7 @@ namespace Test.HashCalculatorTests
         {
             var file = new MemoryStream();
 
-            var result = CRC32Calculator.Calculate(file);
+            var result = CRC32Calculator.Calculate(file, null);
 
             Assert.AreEqual((uint)0, result);
         }
@@ -26,7 +27,7 @@ namespace Test.HashCalculatorTests
             writer.Flush();
             file.Position = 0;
             
-            var result = CRC32Calculator.Calculate(file);
+            var result = CRC32Calculator.Calculate(file, null);
 
             var check_for_1to9 = 0xCBF43926;   //this is supposedly the check value for crc32 used in pkzip etc
             Assert.AreEqual(check_for_1to9, result);
@@ -47,10 +48,26 @@ namespace Test.HashCalculatorTests
             writer2.Flush();
             file2.Position = 0;
 
-            var result1 = CRC32Calculator.Calculate(file1);
-            var result2 = CRC32Calculator.Calculate(file2);
+            var result1 = CRC32Calculator.Calculate(file1, null);
+            var result2 = CRC32Calculator.Calculate(file2, null);
 
             Assert.AreNotEqual(result1, result2);
+        }
+
+        [TestMethod]
+        public void GivenTestSequence_WithSalt_CRCShouldNotMatch()
+        {
+            var file = new MemoryStream();
+            var writer = new StreamWriter(file);
+            writer.Write("123456789");
+            writer.Flush();
+            file.Position = 0;
+
+            var salt = new Guid("19EC9B14-B6B8-455E-9072-857495F856A0");
+            var result = CRC32Calculator.Calculate(file, salt);
+
+            var check_for_1to9 = 0xCBF43926;   //this is supposedly the check value for crc32 used in pkzip etc
+            Assert.AreNotEqual(check_for_1to9, result);
         }
     }
 }

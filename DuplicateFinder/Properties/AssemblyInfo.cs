@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("DuplicateFinder")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Null")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("DuplicateFinder")]
-[assembly: AssemblyCopyright("Copyright © 2025")]
+[assembly: AssemblyCopyright("Copyright © 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -33,4 +33,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("2025.11.18")]    //program version - I once told myself that my programs shall have no versions, only release dates. I oppose versioning programs into hundreds to fake progress.
+[assembly: AssemblyInformationalVersion("2026.05.01")]    //program version - I once told myself that my programs shall have no versions, only release dates. I oppose versioning programs into hundreds to fake progress.
