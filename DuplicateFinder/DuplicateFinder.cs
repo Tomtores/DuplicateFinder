@@ -23,12 +23,19 @@ namespace DuplicateFinder
     public partial class DuplicateFinder : Form
     {
         private FinderSettings settings = FinderSettings.GetInstance();
-        private readonly Logger logger = new Logger(SourceLevels.Warning);
+        private Logger logger;
 
         private IFinder finder;
 
         private const string ProgramName = "Duplicate Finder";
-        private const long fileSizeLimit = 1024 * 4; // bytes, files smaller will never be cached or peeked by quick hasher. Using 4Kb as it is common cluster size.
+        // private const long fileSizeLimit = 1024 * 4; // bytes, files smaller will never be peeked by quick hasher. Using 4Kb as it is common cluster size.
+        private const long fileSizeLimit = 0; // there doesn't seem to be any benefit to skipping quick byte hash. We would be falling back to crc/md5 and caching that instead, which for the md5 is 16 bytes instead of 4, so it will only increase the cache size.
+                                              // we are better off storing the 4 byte checksums and only compute crc/md5 for files that are actual duplicates. Might actually get benefit from not caching the crc/md5 at all,
+                                              // becasue it only becomes useful with exact duplicates, and those are assumed to be not that many and immediatelly deleted, so we will be storing useless data per file.
+                                              // Instead we can treat the quick byte hashes as false alert list to quickly rule out files that are not identical. An exact file duplicate should be a rare occurence.
+                                              // Maybe consider caching only the crc/md5 of very large files to avoid costly computation instead.
+        private const long cacheEntrySizeLimitForExpensiveHash = 1024 * 1024; // bytes, use to skip caching the md5/crc for smaller files, as it will not be needed very often and can be quickly recomputed. at the same time, cache it for large files that would take long to scan.
+        private const long cacheEntrySizeLimit = 0; // bytes, files up to this size will not be cached. Using 0 will cache all files, in exchange for using more space for cache file. Keep at 0 if scanning lots of small files.
 
         private ColumnNames sortColumn = ColumnNames.None;
         private bool sortAscending = false;
@@ -99,7 +106,7 @@ namespace DuplicateFinder
         /// Currently applied filter.
         /// </summary>
         protected Dictionary<FilterType, Func<IEnumerable<DuplicateViewItem[]>, IEnumerable<DuplicateViewItem[]>>> FilterActions = new Dictionary<FilterType, Func<IEnumerable<DuplicateViewItem[]>, IEnumerable<DuplicateViewItem[]>>>();
-
+        
         /// <summary>
         /// Results by current filter.
         /// </summary>
@@ -115,7 +122,7 @@ namespace DuplicateFinder
                 }
                 return viewResult;
             }
-        }
+        }        
 
         private static IEnumerable<DuplicateViewItem[]> BuildViewItems(IEnumerable<Duplicate[]> result)
         {
@@ -129,6 +136,7 @@ namespace DuplicateFinder
             this.InitializeComponent();
             this.Icon = Properties.Resources.ProgramIcon;
             this.Text = ProgramName;
+            this.logger = new Logger(this.settings.LogLevel);
             ConfigureListView(this.isRunning);
 
             this.progressBar.Maximum = 100;
@@ -230,7 +238,7 @@ namespace DuplicateFinder
 
         private void browseBtn_Click(object sender, EventArgs e)
         {
-            var path = Extensions.ShowFolderDialog(this.settings.LastDir);
+            var path = Utilities.ShowFolderDialog(this.settings.LastDir);
 
             if (path != null)
             {
@@ -261,9 +269,11 @@ namespace DuplicateFinder
             this.ToggleButtons();
             Application.DoEvents();
 
-            if (!paths.Any() || paths.Any(p => !Directory.Exists(p)))
+            var invalidpaths = paths.Where(p => !Directory.Exists(p));
+            if (invalidpaths.Any())
             {
-                MessageBox.Show(this, "Scan folder does not exist", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                var errors = string.Join("\n", invalidpaths);
+                MessageBox.Show(this, "Scan folder does not exist:\n" + errors, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.isRunning = false;
                 this.ToggleButtons();
                 return;
@@ -273,7 +283,7 @@ namespace DuplicateFinder
             {
                 this.folderFileCountCache.ClearCache();  // wipe the cache when starting anew
 
-                this.finder = FinderFactory.CreateConfiguredInstance(this.settings.UseCRC, this.settings.UseHashCaching, fileSizeLimit, this.settings.HashSalt, this.logger);
+                this.finder = FinderFactory.CreateConfiguredInstance(this.settings.UseCRC, this.settings.UseHashCaching ? Utilities.AppPath : null, cacheEntrySizeLimit, cacheEntrySizeLimitForExpensiveHash, fileSizeLimit, this.settings.HashSalt, this.logger);
 
                 this.deletionList = Enumerable.Empty<string>();
 
@@ -649,12 +659,19 @@ namespace DuplicateFinder
 
         private void configPanelToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var config = new ConfigPanel(this.settings, this.logger);
+            var config = new ConfigPanel(this.settings, Utilities.AppPath, this.logger);
             config.StartPosition = FormStartPosition.CenterParent;
             var result = config.ShowDialog();
             if (result == DialogResult.OK)
             {
+                // cleanup resources since settings could have changed
+                this.logger.Dispose();
+                this.logger = new Logger(this.settings.LogLevel);
+                (this.finder as IDisposable)?.Dispose();
+                this.finder = null;
+
                 this.ConfigureListView(this.isRunning);
+                RefreshView();
             }
         }
 
@@ -681,6 +698,50 @@ namespace DuplicateFinder
         private void DuplicateFinder_FormClosing(object sender, FormClosingEventArgs e)
         {
             this.logger.Flush();
+        }
+
+        private void saveSearchFolderListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var dialog = new SaveFileDialog();
+            dialog.InitialDirectory = Utilities.AppPath;
+            dialog.Filter = "Folder list files (*.folder)|*.folder|All files (*.*)|*.*";
+            var result = dialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                try
+                {
+                    var folders = this.paths.Select(p => ("scanFolder", p));
+                    SettingsFileAccessor.WriteSettingsToFile(dialog.FileName, folders);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error saving folder list: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void loadSearchFolderListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.InitialDirectory = Utilities.AppPath;
+            dialog.Filter = "Folder list files (*.folder)|*.folder|All files (*.*)|*.*";
+            var result = dialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                try
+                {
+                    var settings = SettingsFileAccessor.ReadSettingsFromFile(dialog.FileName);
+                    if (settings != null)
+                    {
+                        var folders = settings.Where(s => s.Key == "scanFolder").Select(s => s.Value).ToList();
+                        this.paths = folders;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading folder list: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }

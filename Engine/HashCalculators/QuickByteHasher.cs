@@ -14,22 +14,25 @@ namespace Engine.HashCalculators
         private readonly long skipSize;
         private readonly ILogger logger;
 
-        /// <param name="sampleSize">Max number of bytes to read from file. Will be less if file is shorter. Default 8.</param>
-        /// <param name="skipSize">File size in bytes. Files up to this size will be skipped (not opened, hash returns empty string). Default is 0 (nothing skipped).</param>
+        public QuickByteHasher(long skipSize, ILogger logger) : this(sampleSize: 4, skipSize, logger) { }
+
+        /// <param name="sampleSize">Max number of bytes to read from file. Will be less if file is shorter. Default 4.</param>
+        /// <param name="skipSize">File size in bytes. Files up to this size will be skipped (not opened, hash returns empty byte array).</param>
         /// <remarks>In some cases it may be more efficient to not "peek" into small files that can be loaded in single read (mft/one cluster),
         /// and just calculate full crc in next step.</remarks>
-        public QuickByteHasher(int sampleSize = 8, long skipSize = 0, ILogger logger = null)   
+        public QuickByteHasher(int sampleSize, long skipSize, ILogger logger)   
         {
             this.sampleSize = sampleSize;
             this.skipSize = skipSize;
-            this.logger = logger ?? new NullLogger();
+            this.logger = logger;
         }
 
-        public byte[] ComputeHash(Duplicate duplicate)
+        public Checksum ComputeHash(Duplicate duplicate)
         {
             if (duplicate.Size <= this.skipSize)
             {
-                return new byte[this.sampleSize];    // Do not check the file, return empty hash.
+                logger.Info($"QuickByte: Skip file size {duplicate.Size}, file {duplicate.FullName}");
+                return new Checksum(ChecksumKind.QuickByte.ToString("g"), new byte[0]);    // Do not check the file, return empty hash.
             }
 
             var seekingPosition = this.CalculateSeekingPosition(duplicate.Size);
@@ -47,7 +50,7 @@ namespace Engine.HashCalculators
                     }
                     while (read < this.sampleSize && read < duplicate.Size);
 
-                    return buffer;
+                    return new Checksum(ChecksumKind.QuickByte.ToString("g"), buffer);
                 }
             }
             catch(Exception e)

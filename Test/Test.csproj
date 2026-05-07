@@ -64,6 +64,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Entity\ChecksumTests.cs" />
     <Compile Include="HashCalculatorTests\CRC32CalculatorTest.cs" />
     <Compile Include="DeduplicationStrategyTests\DeduplicationStrategyTest.cs" />
     <Compile Include="HashCalculatorTests\HashCacheTests.cs" />
@@ -73,11 +74,10 @@
     <Compile Include="Mocks\FinderProxy.cs" />
     <Compile Include="Mocks\FakeFileAccessor.cs" />
     <Compile Include="Mocks\FakeHasher.cs" />
-    <Compile Include="FindDuplicatesTest.cs" />
-    <Compile Include="OldTests\FinderTest.cs" />
+    <Compile Include="Finder\FindDuplicatesTest.cs" />
+    <Compile Include="Finder\CalculateDeletionsTest.cs" />
     <Compile Include="MergeFoldersTests\MergeFolderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="OldTests\ComparisonTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

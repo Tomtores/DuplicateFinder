@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Engine;
 using Engine.Entities;
 using Engine.FileEnumerators;
 using Engine.HashCalculators;
+using Engine.Infrastructure;
 
-namespace Test
+namespace Test.Mocks
 {
-    internal class FinderProxy : Finder
+    internal class FinderProxy : Engine.Finder
     {
-        public FinderProxy(IFileAccessor finder, params IHashCalculator[] hashers)
-            : base(finder, hashers)
+        public FinderProxy(IFileAccessor fileAccessor, params IHashCalculator[] hashers)
+            : base(fileAccessor, hashers, new NullLogger())
         {
         }
 

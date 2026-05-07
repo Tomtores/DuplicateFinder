@@ -1,4 +1,5 @@
-﻿using DuplicateFinder.Forms;
+﻿using DuplicateFinder.Enums;
+using DuplicateFinder.Forms;
 using Engine.Infrastructure;
 using System;
 using System.Diagnostics;
@@ -10,16 +11,19 @@ namespace DuplicateFinder
 {
     public partial class ConfigPanel : Form
     {
+        private readonly string appPath;
         private readonly ILogger logger;
 
         private FinderSettings Settings { get; set; }
 
-        public ConfigPanel(FinderSettings settings, ILogger logger)
+        public ConfigPanel(FinderSettings settings, string appPath, ILogger logger)
         {
+            this.appPath = appPath;
             this.logger = logger;
 
             InitializeComponent();
-            this.versionLabel.Text = "Version " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly‌​().Location).ProductVersion; 
+            this.versionLabel.Text = "Version " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly‌​().Location).ProductVersion;
+            this.logLevelCombo.Items.AddRange(new object[] { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.All });
             this.Settings = settings;
 
             //read setting values
@@ -31,6 +35,7 @@ namespace DuplicateFinder
             this.maxSizeBox.Text = this.Settings.MaxSizeKB == null ? "" : this.Settings.MaxSizeKB.ToString();
             this.thumbnailSize.Value = Math.Min(256, Math.Max(this.Settings.Thumbsize, 12)); // Must be 12 to 256 pixels. One day in net 7. we'll get Math.Clamp()
             this.previewCheck.Checked = this.Settings.PreviewEnabled;
+            this.logLevelCombo.SelectedIndex = this.logLevelCombo.Items.IndexOf(this.Settings.LogLevel);
         }
 
         private void ok_btn_Click(object sender, EventArgs e)
@@ -56,6 +61,11 @@ namespace DuplicateFinder
             this.Settings.Thumbsize = (int)Math.Round(this.thumbnailSize.Value, 0);
             this.Settings.PreviewEnabled = this.previewCheck.Checked;
 
+            if (this.logLevelCombo.SelectedItem != null)
+            {
+                this.Settings.LogLevel = (LogLevel)this.logLevelCombo.SelectedItem;
+            }
+
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
@@ -79,7 +89,7 @@ namespace DuplicateFinder
 
         private void deletCacheBtn_Click(object sender, EventArgs e)
         {
-            var cachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "cache.tsv");
+            var cachePath = Path.Combine(this.appPath, "cache.tsv");
             if (!File.Exists(cachePath))
             {
                 MessageBox.Show("No cache to delete", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -96,14 +106,14 @@ namespace DuplicateFinder
 
         private void trimCache_Click(object sender, EventArgs e)
         {
-            var cachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "cache.tsv");
-            if (!File.Exists(cachePath))
+            var cacheFile = Path.Combine(this.appPath, "cache.tsv");
+            if (!File.Exists(cacheFile))
             {
                 MessageBox.Show("No cache exists", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                var dialog = new TrimCacheDialog(this.Settings.HashSalt, logger);
+                var dialog = new TrimCacheDialog(this.appPath, this.Settings.HashSalt, logger);
                 dialog.StartPosition = FormStartPosition.CenterParent;
                 dialog.ShowDialog();
             }

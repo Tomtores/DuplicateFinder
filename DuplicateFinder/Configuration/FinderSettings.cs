@@ -1,9 +1,9 @@
-﻿using System;
+﻿using DuplicateFinder.Enums;
+using DuplicateFinder.Utils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 
 namespace DuplicateFinder
 {
@@ -36,6 +36,7 @@ namespace DuplicateFinder
             {
                 { SettingNames.IgnoreEmpty, true.ToString() },
                 { SettingNames.Thumbsize, 80.ToString() },
+                { SettingNames.LogLevel, LogLevel.Warning.ToString() },
             };
 
         private T GetValue<T>(string option)
@@ -47,7 +48,7 @@ namespace DuplicateFinder
                 if (baseType != null)
                 {
                     // T is nullable
-                    return setting == "null" ? default(T) : (T)Convert.ChangeType(setting, baseType);    
+                    return setting == "null" ? default(T) : (T)Convert.ChangeType(setting, baseType);
                 }
 
                 return (T)Convert.ChangeType(setting, typeof(T));
@@ -66,53 +67,34 @@ namespace DuplicateFinder
 
         private string GetFilename()
         {
-            return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), SettingsFilename);
+            return Path.Combine(Utilities.AppPath, SettingsFilename);
         }
 
         private void ReadFile(IDictionary<string, string> defaultSettings)
         {
             var path = GetFilename();
-            if (File.Exists(path))
-            {
-                using (var reader = new StreamReader(File.OpenRead(path), Encoding.UTF8))
-                {
-                    var header = reader.ReadLine();
-                    while (!reader.EndOfStream)
-                    {
-                        var row = reader.ReadLine();
-                        if (string.IsNullOrWhiteSpace(row))
-                        {
-                            continue;
-                        }
+            var settings = SettingsFileAccessor.ReadSettingsFromFile(path);
 
-                        var values = row.Split('\t');
-                        _settings[values.GetValueSafe(0)] = values.GetValueSafe(1);
-                    }
-                }
+            if (settings == null)
+            {
+                this._settings = defaultSettings;
             }
             else
             {
-                _settings = defaultSettings;
+                this._settings = settings.ToDictionary(s => s.Key, s => s.Value);
             }
 
             if (UseHashCaching)
             {
                 EnsureSalt(true);
             }
-        }
+        }        
 
         private void WriteOutFile()
         {
             var path = GetFilename();
-            using (var file = new StreamWriter(path, false, Encoding.UTF8))
-            {
-                file.WriteLine("Setting\tValue\n");
-                foreach (var item in this._settings)
-                {
-                    file.WriteLine("{0}\t{1}", item.Key, item.Value);
-                }
-            }
-        }
+            SettingsFileAccessor.WriteSettingsToFile(path, this._settings.Select(s => (s.Key, s.Value)));
+        }        
 
         #region Settings
 
@@ -163,14 +145,15 @@ namespace DuplicateFinder
             set
             {
                 SetValue(SettingNames.UseHashCaching, value);
-                EnsureSalt(value);                
+                EnsureSalt(value);
             }
         }
 
         public Guid? HashSalt
         {
-            get { 
-                var value = GetValue<string>(SettingNames.HashSalt); 
+            get
+            {
+                var value = GetValue<string>(SettingNames.HashSalt);
                 if (value == null)
                 {
                     return null;
@@ -182,8 +165,8 @@ namespace DuplicateFinder
             set => SetValue(SettingNames.HashSalt, value?.ToString());
         }
 
-        public void EnsureSalt(bool cacheEnabled) 
-        { 
+        public void EnsureSalt(bool cacheEnabled)
+        {
             if (cacheEnabled && HashSalt == null)
             {
                 HashSalt = Guid.NewGuid();
@@ -292,6 +275,24 @@ namespace DuplicateFinder
             }
         }
 
+        public LogLevel LogLevel
+        {
+            get
+            {
+                var value = GetValue<string>(SettingNames.LogLevel);
+                if(Enum.TryParse(value, out LogLevel logLevel))
+                {
+                    return logLevel;
+                }
+
+                return LogLevel.Warning;
+            }
+            set
+            {
+                SetValue(SettingNames.LogLevel, value.ToString("g"));
+            }
+        }
+
         #endregion
 
         private class SettingNames
@@ -309,6 +310,7 @@ namespace DuplicateFinder
             public const string Ignored = "Ignored";
             public const string Thumbsize = "Thumbsize";
             public const string PreviewEnabled = "PreviewEnabled";
+            public const string LogLevel = "LogLevel";
         }
     }
 }

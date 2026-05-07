@@ -1,9 +1,9 @@
 ﻿using Engine.Cache;
 using Engine.CleanupStrategies;
+using Engine.Entities;
 using Engine.FileEnumerators;
 using Engine.HashCalculators;
 using Engine.Infrastructure;
-using EnginePlugins.Cache;
 using Plugins;
 using System;
 using System.Configuration;
@@ -12,7 +12,7 @@ using System.Reflection;
 
 namespace Engine
 {
-    public class FinderFactory
+    public static class FinderFactory
     {
         private static Plugins.Cache.IHashCache cache;
 
@@ -20,7 +20,8 @@ namespace Engine
 
         public static IFinder CreateDefaultInstance()
         {
-            return new Finder(new SafeFileEnumerator(), GetDefaultHashers());
+            var logger = new NullLogger();
+            return new Finder(new SafeFileEnumerator(logger), GetDefaultHashers(logger), logger);
         }
 
         /// <param name="enumerator">Use the Get*Enumerator to create approrpiate instance. Client may provide it's own implementation.</param>
@@ -28,7 +29,7 @@ namespace Engine
         /// Files identified as identical are passed to next calculator until differences are found or no calculators are left to try.
         /// It is advised to use lightweight calculator in front and detailed one as last.</param>
         /// <returns></returns>
-        public static IFinder CreateInstance(IFileAccessor enumerator, IHashCalculator[] hashCalculators, ILogger logger = null)
+        public static IFinder CreateInstance(IFileAccessor enumerator, IHashCalculator[] hashCalculators, ILogger logger)
         {
             if (enumerator == null)
             {
@@ -43,29 +44,34 @@ namespace Engine
         /// Configure finder instance.
         /// </summary>
         /// <param name="useCrc32">Use Crc32 instead of MD5</param>
-        /// <param name="useCache">True to enable caching</param>
-        /// <param name="fileSizeLimit">Size limit in bytes. Files smaller than this value will not be processed by quickByte hasher and will not be cached.</param>
+        /// <param name="cachePath">Set path to enable caching</param>
+        /// <param name="cacheEntrySizeLimit">Size limit in bytes. Hashes of files smaller than this value will not be cached. Set to 0 to cache all files.</param>
+        /// <param name="fileSizeLimit">Size limit in bytes. Files smaller than this value will not be processed by quickByte hasher.</param>
         /// <param name="salt">Optional salt for hash calculators. Will only be used when cache is enabled.</param>
-        public static IFinder CreateConfiguredInstance(bool useCrc32, bool useCache, long fileSizeLimit, Guid? salt = null, ILogger logger = null)
+        public static IFinder CreateConfiguredInstance(bool useCrc32, string cachePath, long cacheEntrySizeLimit, long cacheSizeLimitForMD5, long fileSizeLimit, Guid? salt, ILogger logger)
         {
             var enumerator = GetSafeFileEnumerator(logger);
-            var quickHasher = GetQuickByteHasher(skipSize: fileSizeLimit, logger);
-
-            if (useCache)
+            
+            if (!string.IsNullOrWhiteSpace(cachePath))
             {
-                InitializeCache(fileSizeLimit, salt, logger);
-                var secondHasher = useCrc32 ? GetCRC32Hasher(salt, logger) : GetMD5Hasher(salt: salt, logger: logger);
-                var hashers = new IHashCalculator[] 
+                InitializeCache(cachePath, cacheEntrySizeLimit, cacheSizeLimitForMD5, salt, logger);
+                var hashers = new IHashCalculator[]
                 {
-                    quickHasher,
-                    PluginFactory.ApplyCaching(secondHasher, useCrc32 ? ChecksumKind.CRC32 : ChecksumKind.MD5, cache)
+                    PluginFactory.ApplyCaching(GetQuickByteHasher(fileSizeLimit, logger), ChecksumKind.QuickByte, cache),
+                    useCrc32
+                        ? PluginFactory.ApplyCaching(GetCRC32Hasher(salt, logger), ChecksumKind.CRC32, cache)
+                        : PluginFactory.ApplyCaching(GetMD5Hasher(salt, logger), ChecksumKind.MD5, cache)
                 };
                 var finder = CreateInstance(enumerator, hashers, logger);
                 return new CachedFinderDecorator(finder, cache);
             }
             else
             {
-                var hashers = new IHashCalculator[] { quickHasher, useCrc32 ? GetCRC32Hasher(logger: logger) : GetMD5Hasher(logger: logger) };            
+                var hashers = new IHashCalculator[] 
+                {
+                    GetQuickByteHasher(fileSizeLimit, logger), 
+                    useCrc32 ? GetCRC32Hasher(salt: null, logger) : GetMD5Hasher(salt: null, logger) 
+                };            
                 return CreateInstance(enumerator, hashers, logger);
             }
         }        
@@ -79,7 +85,7 @@ namespace Engine
             return new StandardFileEnumerator();
         }
 
-        public static IFileAccessor GetSafeFileEnumerator(ILogger logger = null)
+        public static IFileAccessor GetSafeFileEnumerator(ILogger logger)
         {
             return new SafeFileEnumerator(logger);
         }
@@ -92,24 +98,24 @@ namespace Engine
         /// Default are QuickByte followed by MD5
         /// </summary>
         /// <returns></returns>
-        public static IHashCalculator[] GetDefaultHashers()
+        public static IHashCalculator[] GetDefaultHashers(ILogger logger)
         {
-            return new IHashCalculator[] { new QuickByteHasher(), new MD5_Hasher() };
+            return new IHashCalculator[] { new QuickByteHasher(0, logger), new MD5_Hasher(null, logger) };
         }
 
         /// <param name="skipSize">Files smaller than this bytes will not be hashed.</param>
-        public static IHashCalculator GetQuickByteHasher(long skipSize = 0, ILogger logger = null)
+        public static IHashCalculator GetQuickByteHasher(long skipSize, ILogger logger)
         {
-            return new QuickByteHasher(skipSize: skipSize, logger: logger);
+            return new QuickByteHasher(skipSize, logger);
         }
 
-        /// <param name="md5AlgorithName">Name of standard .NET MD5 algorithm name to use. Null for default implementation.</param>
-        public static IHashCalculator GetMD5Hasher(string md5AlgorithName = null, Guid? salt = null, ILogger logger = null)
+        /// <param name="salt">Provide optional salt to seed calculation or null.</param>
+        public static IHashCalculator GetMD5Hasher(Guid? salt, ILogger logger)
         {
-            return new MD5_Hasher(md5AlgorithName, salt, logger);
+            return new MD5_Hasher(salt, logger);
         }
 
-        public static IHashCalculator GetCRC32Hasher(Guid? salt = null, ILogger logger = null)
+        public static IHashCalculator GetCRC32Hasher(Guid? salt, ILogger logger)
         {
             return new CRC32_Hasher(salt, logger);
         }
@@ -127,24 +133,24 @@ namespace Engine
 
         #region CacheManagement
 
-        private static void InitializeCache(long sizelimit, Guid? installationSalt, ILogger logger)
+        private static void InitializeCache(string cachepath, long sizelimit, long sizeLimitForMD5, Guid? installationSalt, ILogger logger)
         {
             if (cache != null)
             {
                 (cache as IDisposable)?.Dispose();
             }
 
-            cache = PluginFactory.ConfigureCache(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), sizelimit, installationSalt, logger);
+            cache = PluginFactory.ConfigureCache(cachepath, sizelimit, sizeLimitForMD5, installationSalt, logger);
         }
 
         /// <summary>
         /// May throw
         /// </summary>
-        public static void TrimCache(Action<int> updateProgress, Guid? installationSalt, ILogger logger = null)
+        public static void TrimCache(string cachePath, Action<int> updateProgress, Guid? installationSalt, ILogger logger)
         {
             if (cache == null)
             {
-                InitializeCache(0L, installationSalt, logger ?? new NullLogger());
+                InitializeCache(cachePath, 0L, 0L, installationSalt, logger);
             }
 
             cache.Trim(updateProgress);

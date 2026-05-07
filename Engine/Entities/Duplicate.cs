@@ -26,11 +26,11 @@ namespace Engine.Entities
         public string DirectoryName { get; private set; }
         public DateTime Timestamp { get; set; }
 
-        public string Hash { get; set; }
+        public Checksum Hash { get; set; }
 
         /// <summary>
         /// Unique value that identifies group of duplicates.
         /// </summary>
-        public string Footprint { get { return this.Hash + this.Size; } }
+        public string Footprint { get { return Hash.Type + BitConverter.ToString(this.Hash.Value) + this.Size; } }
     }
 }

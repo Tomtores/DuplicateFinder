@@ -42,7 +42,7 @@ namespace DuplicateFinder
 
         private void addBtn_Click(object sender, EventArgs e)
         {
-            var path = Extensions.ShowFolderDialog(lastDirGet());
+            var path = Utilities.ShowFolderDialog(lastDirGet());
             if (path != null)
             {
                 this.lastDirSet(path);

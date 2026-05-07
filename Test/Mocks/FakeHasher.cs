@@ -16,13 +16,13 @@ namespace Test
             this.filesystemProxy = filesystemProxy;
         }
 
-        public byte[] ComputeHash(Duplicate duplicate)
+        public Checksum ComputeHash(Duplicate duplicate)
         {
             var file = filesystemProxy.GetFile(duplicate.FullName);
             using (var md5 = MD5.Create())
             {
                 var hash = md5.ComputeHash(file);
-                return hash;
+                return new Checksum("FAKE", hash);
             }
         }
     }

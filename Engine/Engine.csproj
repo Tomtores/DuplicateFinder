@@ -41,19 +41,21 @@
   <ItemGroup>
     <Compile Include="Cache\CachedFinderDecorator.cs" />
     <Compile Include="Cache\CachedHasherDecorator.cs" />
-    <Compile Include="Cache\ChecksumKind.cs" />
+    <Compile Include="Entities\ChecksumKind.cs" />
     <Compile Include="Cache\HashCache.cs" />
     <Compile Include="Cache\IHashCache.cs" />
     <Compile Include="Cache\PluginFactory.cs" />
     <Compile Include="CleanupStrategies\IDeduplicationStrategy.cs" />
     <Compile Include="CleanupStrategies\RemoveExtraCopiesWithinFolderStrategy.cs" />
     <Compile Include="ConcurrentBufferedList.cs" />
+    <Compile Include="Entities\Checksum.cs" />
     <Compile Include="Entities\Duplicate.cs" />
     <Compile Include="Entities\IProgressStatus.cs" />
     <Compile Include="Entities\MergePreview.cs" />
     <Compile Include="Entities\ProgressKind.cs" />
     <Compile Include="Entities\WorkState.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="FileEnumerators\FileEntry.cs" />
     <Compile Include="FinderFactory.cs" />
     <Compile Include="FileEnumerators\SafeFileEnumerator.cs" />
     <Compile Include="FileEnumerators\StandardFileEnumerator.cs" />

@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Test.Mocks;
 
 namespace Test.MergeFoldersTests
 {
@@ -22,8 +23,9 @@ namespace Test.MergeFoldersTests
         public void MergeOnEmptyPath_ReturnsEmpty()
         {
             finder.FindDuplicates(new string[] { }, "*.*", new string[] { });
+            filesystemProxy.SetupDirectories(("test", new string[0]));
 
-            var result = finder.CalculateMergeIntoFolder("");
+            var result = finder.CalculateMergeIntoFolder("test");
            
             Assert.AreEqual(0, result.FilesToMove.Count());
             Assert.AreEqual(0, result.FoldersToMove.Count());
@@ -40,6 +42,10 @@ namespace Test.MergeFoldersTests
                 ( @"X:\AnotherFolder\File2.txt", Encoding.UTF8.GetBytes("Content") )
             };
             filesystemProxy.SetupFiles(files);
+            filesystemProxy.SetupDirectories(
+                (@"X:\Folder", new string[] { }),
+                (@"X:\AnotherFolder", new string[] { })
+            );
 
             finder.FindDuplicates(new string[] { @"X:\" }, "*.*", new string[] { });
 
@@ -64,6 +70,10 @@ namespace Test.MergeFoldersTests
                 ( @"X:\AnotherFolder\File4.txt", Encoding.UTF8.GetBytes("UniqueContent2") )
             };
             filesystemProxy.SetupFiles(files);
+            filesystemProxy.SetupDirectories(
+                (@"X:\Folder", new string[] { }),
+                (@"X:\AnotherFolder", new string[] { })
+            );
 
             finder.FindDuplicates(new string[] { @"X:\" }, "*.*", new string[] { });
 
@@ -89,7 +99,11 @@ namespace Test.MergeFoldersTests
                 ( @"X:\AnotherFolder\Subfolder\File4.txt", Encoding.UTF8.GetBytes("UniqueContent3") )
             };
             filesystemProxy.SetupFiles(files);
-            
+            filesystemProxy.SetupDirectories(
+                (@"X:\Folder", new string[] { }),
+                (@"X:\AnotherFolder", new string[] { "Subfolder" })                
+            );
+
             finder.FindDuplicates(new string[] { @"X:\" }, "*.*", new string[] { });
 
             // Act

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Engine.Cache
 {
-    internal class CachedFinderDecorator : IFinder
+    internal class CachedFinderDecorator : IFinder, IDisposable
     {
         private readonly IFinder _finder;
         private readonly IHashCache _cache;
@@ -24,7 +24,7 @@ namespace Engine.Cache
 
         public IEnumerable<Duplicate[]> Duplicates => _finder.Duplicates;
 
-        public IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null)
+        public IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null, Action<ProgressKind> progressUpdateCallback = null)
         {
             return _finder.CalculateFilesToDelete(trashList, keepList);
         }
@@ -39,7 +39,7 @@ namespace Engine.Cache
             var result = _finder.DeleteItemsAsync(toDelete, progressCallback, cancellationToken);
             RemoveFromCache(toDelete);
             return result;
-        }
+        }        
 
         public void FindDuplicates(string[] paths, string filter, string[] ignored, Action<ProgressKind> progressUpdateCallback = null, bool skipEmpty = false, int? minSizeKB = null, int? maxSizeKB = null)
         {
@@ -52,6 +52,11 @@ namespace Engine.Cache
             var result = _finder.MergeIntoFolderAsync(actionsToPerform, moveSubfolders, progressCallback, cancellationToken);
             RemoveFromCache(actionsToPerform.DuplicatesToDelete);
             return result;
+        }
+
+        public void Dispose()
+        {
+            (_finder as IDisposable)?.Dispose();
         }
 
         #endregion

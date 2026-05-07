@@ -17,9 +17,9 @@ namespace Engine.FileEnumerators
         public const int MAX_FILENAME = 260;
         private ILogger logger;
 
-        public SafeFileEnumerator(ILogger logger = null)
+        public SafeFileEnumerator(ILogger logger)
         {
-            this.logger = logger ?? new NullLogger();
+            this.logger = logger;
         }
 
         public void DeleteFile(string item)
@@ -71,10 +71,10 @@ namespace Engine.FileEnumerators
             return result.Distinct();
         }
 
-        public (string FullName, long Length, DateTime LastWriteTimeUtc) GetFileInfo(string file)
+        public FileEntry GetFileInfo(string file)
         {
             var info = new FileInfo(file);
-            return (info.FullName, info.Length, info.LastWriteTimeUtc);
+            return new FileEntry(info.FullName, info.Length, info.LastWriteTimeUtc);
         }
 
         public void MoveDirectory(string source, string destination)

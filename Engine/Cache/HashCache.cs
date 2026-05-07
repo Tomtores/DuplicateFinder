@@ -1,6 +1,6 @@
 ﻿using Engine;
+using Engine.Entities;
 using Engine.Infrastructure;
-using EnginePlugins.Cache;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,21 +11,23 @@ namespace Plugins.Cache
 {
     internal class HashCache : IHashCache, IDisposable
     {
-        private const string Version = "V3_";
+        private const string Version = "V4_";
         private readonly string path;
         private readonly ILogger logger;
         private readonly long sizeLimit;
+        private readonly long sizeLimitForMd5;
         private readonly string saltChecksum;
 
         IDictionary<string, HashInfo> cache;
         private bool isWrittenOutToDisk = false;
         private DateTime lastSaveTime = DateTime.MinValue;
-        
+
         private class HashInfo
         {
             public long Size;
             public byte[] CRC32; //4 bytes
             public byte[] MD5; // 16 bytes
+            public byte[] QuickByte; // 4 bytes
             public DateTime fileModifiedTimestamp;
         }
 
@@ -33,10 +35,11 @@ namespace Plugins.Cache
         /// Initializes cache in given folder. Will skip storing files smaller than sizelimit.
         /// </summary>
         /// <exception cref="DirectoryNotFoundException"></exception>
-        public HashCache(string path, long sizelimit = 1024 * 4, Guid? installationSalt = null, ILogger logger = null)
+        public HashCache(string path, long sizelimit, long sizeLimitForMd5, Guid? installationSalt, ILogger logger)
         {
-            this.logger = logger ?? new NullLogger();
+            this.logger = logger;
             this.sizeLimit = sizelimit;
+            this.sizeLimitForMd5 = sizeLimitForMd5;
             this.saltChecksum = installationSalt == null ? string.Empty : installationSalt?.GetHashCode().ToString("X");
 
             if (!Directory.Exists(path))
@@ -70,7 +73,8 @@ namespace Plugins.Cache
                         return value.CRC32;
                     case ChecksumKind.MD5:
                         return value.MD5;
-                    case ChecksumKind.QuickByte:    // we do not store quickbyte - it has zero compute cost
+                    case ChecksumKind.QuickByte:
+                        return value.QuickByte;
                     default:
                         return null;
                 }
@@ -81,9 +85,10 @@ namespace Plugins.Cache
 
         public void Store(string fullName, long size, ChecksumKind hashName, byte[] hash, DateTime fileModifiedDateUtc)
         {
-            if (size < sizeLimit || hashName == ChecksumKind.QuickByte)
+            if (size < sizeLimit || (size < sizeLimitForMd5 && hashName == ChecksumKind.MD5))
             {
-                return; // we do not cache files smaller than size limit, we do not store quickbyte hashes
+                logger.Info($"Cache: Skip caching size {size} file {fullName}");
+                return; // we do not cache files smaller than size limit
             }
 
             HashInfo value;
@@ -105,6 +110,9 @@ namespace Plugins.Cache
                 case ChecksumKind.MD5:
                     value.MD5 = hash;
                     break;
+                case ChecksumKind.QuickByte:
+                    value.QuickByte = hash;
+                    break;
                 default:
                     break;
             }
@@ -120,7 +128,7 @@ namespace Plugins.Cache
             this.cache.Remove(fullName);
             this.isWrittenOutToDisk = false;
         }
-        
+
         /// <summary>
         /// May throw
         /// </summary>
@@ -136,7 +144,7 @@ namespace Plugins.Cache
             {
                 SaveCache();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.Error($"Exception when disposing: {e.Message}");
             }
@@ -151,14 +159,14 @@ namespace Plugins.Cache
                 {
                     SaveCache();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     logger.Error($"Exception when saving cache: {e.Message}");
                 }
 
                 lastSaveTime = DateTime.Now;
             }
-        }     
+        }
 
         #region Cache persistence as file
 
@@ -193,18 +201,21 @@ namespace Plugins.Cache
                 logger.Error($"Error when writing out cache: {e.Message}");
                 throw new Exception("Error when writing out cache", e);
             }
+
+            logger.Info($"Cache: Saved {this.cache.Count} items to disk.");
         }
 
         private static void SaveCacheToFile(string path, IDictionary<string, HashInfo> cache, string saltChecksum)
         {
             using (var file = new StreamWriter(path, false, Encoding.UTF8))
             {
-                file.WriteLine($"{Version}Path\tSize\tCRC32\tMD5\tTimestamp\t{saltChecksum}\n");
+                file.WriteLine($"{Version}Path\tSize\tQuickByte\tCRC32\tMD5\tTimestamp\t{saltChecksum}\n");
                 foreach (var item in cache)
                 {
-                    file.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}",
+                    file.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t{5}",
                         item.Key,
                         item.Value.Size,
+                        ToByteString(item.Value.QuickByte),
                         ToByteString(item.Value.CRC32),
                         ToByteString(item.Value.MD5),
                         ToByteString(BitConverter.GetBytes(item.Value.fileModifiedTimestamp.ToBinary())));
@@ -237,33 +248,36 @@ namespace Plugins.Cache
                                     new HashInfo
                                     {
                                         Size = Convert.ToInt64(values.GetValueSafe(1)),
-                                        CRC32 = GetByteArray(values.GetValueSafe(2), 4),
-                                        MD5 = GetByteArray(values.GetValueSafe(3), 16),
-                                        fileModifiedTimestamp = ParseDate(values.GetValueSafe(4))
+                                        QuickByte = GetByteArray(values.GetValueSafe(2), 4),
+                                        CRC32 = GetByteArray(values.GetValueSafe(3), 4),
+                                        MD5 = GetByteArray(values.GetValueSafe(4), 16),
+                                        fileModifiedTimestamp = ParseDate(values.GetValueSafe(5))
                                     };
                             }
                         }
                     }
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.Error($"Error when reading cache: {e.Message}");
             }
 
             this.cache = results;
+
+            logger.Info($"Cache: Loaded {this.cache.Count} items from disk.");
         }
 
         private bool VerifyHeader(string header)
         {
-            if(!header.StartsWith(Version))
+            if (!header.StartsWith(Version))
             {
                 logger.Warning("Cache version mismatch. Cache will be dropped.");
                 return false;
             }
 
             var headerParts = header.Split('\t');
-            if (headerParts.GetValueSafe(5) != saltChecksum)
+            if (headerParts.GetValueSafe(6) != saltChecksum)
             {
                 logger.Error("Cache salt checksum does not match installation value. This may be evidence of tampering. Cache will be dropped");
                 return false;
@@ -362,7 +376,7 @@ namespace Plugins.Cache
             {
                 return Directory.Exists(path);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.Warning($"Error when accessing directory ({path}): {e.Message}");
                 return false;
@@ -375,7 +389,7 @@ namespace Plugins.Cache
             {
                 return File.Exists(filepath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.Warning($"Error when accessing file ({filepath}): {e.Message}");
                 return false;

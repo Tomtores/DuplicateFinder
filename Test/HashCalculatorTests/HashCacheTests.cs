@@ -1,5 +1,5 @@
-﻿using Engine.Infrastructure;
-using EnginePlugins.Cache;
+﻿using Engine.Entities;
+using Engine.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Plugins.Cache;
 using System;
@@ -20,7 +20,7 @@ namespace Test.HashCalculatorTests
                 Directory.CreateDirectory(path);
             }
 
-            return (new HashCache(path, 0L, null, new NullLogger()), path);
+            return (new HashCache(path, 0L, 0L, null, new NullLogger()), path);
         }
 
         [TestMethod]

@@ -1,24 +1,46 @@
-﻿using Engine.Infrastructure;
+﻿using DuplicateFinder.Enums;
+using Engine.Infrastructure;
 using System;
 using System.Diagnostics;
 
 namespace DuplicateFinder.Utils
 {
-    internal class Logger : ILogger
+    internal class Logger : ILogger, IDisposable
     {
-        private TraceSource trace;
-        private TextWriterTraceListener fileListener;
+        private readonly TraceSource trace;
+        private readonly TextWriterTraceListener fileListener;
 
-        public Logger(SourceLevels loggingLevel)
+        public Logger(LogLevel loggingLevel)
         {
+            if (loggingLevel == LogLevel.None)
+            {
+                trace = new TraceSource("NoLogging", SourceLevels.Off);
+                return;
+            }
+
             fileListener = new TextWriterTraceListener($"log.txt");
-            fileListener.Filter = new EventTypeFilter(loggingLevel);
+            fileListener.Filter = new EventTypeFilter(GetLoggingLevel(loggingLevel));
 
             trace = new TraceSource(DateTime.Today.ToString("yyyy-MM-dd"), SourceLevels.All);
             trace.Listeners.Clear();
             trace.Listeners.Add(fileListener);
 
             Trace.AutoFlush = true;
+        }
+
+        private SourceLevels GetLoggingLevel(LogLevel loggingLevel)
+        {
+            switch(loggingLevel)
+            {
+                case LogLevel.Error:
+                    return SourceLevels.Error;
+                case LogLevel.Warning:
+                    return SourceLevels.Warning;
+                case LogLevel.All:
+                    return SourceLevels.All;
+                default:
+                    return SourceLevels.Warning;
+            }
         }
 
         public void Error(string message)
@@ -40,7 +62,14 @@ namespace DuplicateFinder.Utils
         public void Flush()
         {
             trace.Flush();
-            fileListener.Flush();
+            fileListener?.Flush();
+        }
+
+        public void Dispose()
+        {
+            this.Flush();
+            trace.Close();
+            fileListener?.Close();
         }
     }
 }

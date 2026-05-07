@@ -2,8 +2,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Text;
+using Test.Mocks;
 
-namespace Test
+namespace Test.Finder
 {
     [TestClass]
     public class FindDuplicatesTest

@@ -1,6 +1,7 @@
 ﻿using Engine;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using Test.Mocks;
 
 namespace Test.MergeFoldersTests
 {

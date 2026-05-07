@@ -11,7 +11,7 @@ using Engine.Infrastructure;
 
 namespace Engine
 {
-    internal class Finder : IFinder
+    internal class Finder : IFinder, IDisposable
     {
         private readonly IHashCalculator[] hashers;
         private readonly ILogger logger;
@@ -40,11 +40,11 @@ namespace Engine
             }
         }
 
-        public Finder(IFileAccessor finder, IHashCalculator[] hashers, ILogger logger = null)
+        public Finder(IFileAccessor fileAccessor, IHashCalculator[] hashers, ILogger logger)
         {
-            this.fileAccessor = finder;
+            this.fileAccessor = fileAccessor;
             this.hashers = hashers ?? new IHashCalculator[] { };
-            this.logger = logger ?? new NullLogger();
+            this.logger = logger;
             this.status = new ProgressStatus();
         }
 
@@ -101,6 +101,7 @@ namespace Engine
 
                 // Ensure the fileinfo list gets dropped - we no longer need the data, and it's the biggest object in memory now.
                 files.Clear();
+                files = null;
                 GC.Collect();
 
                 this.Report(WorkState.Comparing);
@@ -117,9 +118,15 @@ namespace Engine
             }
         }
 
-        private IList<Duplicate> ListFiles(string[] paths, string filter, string[] ignores)
+        /// <summary>
+        /// Input: Paths to scan.
+        /// Output: List of file entries.
+        /// </summary>
+        /// <exception cref="PathTooLongException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        private IList<FileEntry> ListFiles(string[] paths, string filter, string[] ignores)
         {
-            var result = new List<Duplicate>();
+            var result = new List<FileEntry>(1000); // preallocate the list, we expect lot of results on average
             var filesIn = this.fileAccessor.EnumerateFiles(paths, filter, recursive: true);
 
             foreach (var file in filesIn)
@@ -128,18 +135,17 @@ namespace Engine
                 {
                     try
                     {
-                        var (FullName, Length, LastWriteTimeUtc) = fileAccessor.GetFileInfo(file);
-                        var duplicate = new Duplicate(FullName, Length, LastWriteTimeUtc);
-                        result.Add(duplicate);
-                        this.Report(duplicate.FullName, result.Count);
+                        var entry = fileAccessor.GetFileInfo(file);
+                        result.Add(entry);
+                        this.Report(entry.FullName, result.Count);
                     }
-                    catch (System.IO.PathTooLongException e)
+                    catch (PathTooLongException e)
                     {
-                        throw new System.IO.PathTooLongException(file, e);
+                        throw new PathTooLongException(file, e);
                     }
-                    catch (System.IO.FileNotFoundException e)
+                    catch (FileNotFoundException e)
                     {
-                        throw new System.IO.FileNotFoundException(file, e);
+                        throw new FileNotFoundException(file, e);
                     }
                 }
             }
@@ -149,12 +155,13 @@ namespace Engine
 
         /// <summary>
         /// Scan files and return collection of ones with duplicate sizes.
+        /// Input: List of file entries.
+        /// Output: File entries grouped by size.
         /// </summary>
-        private IEnumerable<Duplicate[]> FindDuplicateSizes(IEnumerable<Duplicate> fileinfo, bool skipEmpty, int? minSizeKB, int? maxSizeKB)
+        private IEnumerable<FileEntry[]> FindDuplicateSizes(IEnumerable<FileEntry> entries, bool skipEmpty, int? minSizeKB, int? maxSizeKB)
         {
-            var filtered = fileinfo;
+            var filtered = entries;
 
-            // No point in optimizing following, as size is already read and stored in memory.
             if (skipEmpty)
             {
                 filtered = filtered.Where(f => f.Size > 0);
@@ -178,24 +185,23 @@ namespace Engine
         }
 
         /// <summary>
-        /// Scan files and return ones with same content.
+        /// Scan files and keep with same content. Updates internal state with found duplicates.
+        /// Input: List of file entries grouped by size.
+        /// Output: Writes to <cref="this.duplicates"/>.
         /// </summary>
-        private void FindDuplicateContents(IEnumerable<Duplicate[]> duplicates)
+        private void FindDuplicateContents(IEnumerable<FileEntry[]> groups)
         {
-            var count = duplicates.Sum(d => d.Length);
-            var totalSize = duplicates.Sum(d => d.Sum(i => i.Size));
+            var count = groups.Sum(d => d.Length);
+            var totalSize = groups.Sum(d => d.Sum(i => i.Size));
             this.Report(filesFound: count);
 
             var processedSize = 0L;
 
-            // ToDo: change processing from foreach to cascade. Use first hasher on the collection and evict entries with no macth. Then run the second hasher for all items.
-            // change reporting to account for multiple passes.
-
-            foreach (var duplicate in duplicates)
+            foreach (var set in groups)
             {
-                this.Report(duplicate.First().FullName);
-                var result = this.CascadeCompare(duplicate, this.hashers);
-                processedSize += duplicate.Sum(d => d.Size);
+                this.Report(set.First().FullName);
+                var result = this.CascadeCompare(set, this.hashers);
+                processedSize += set.Sum(d => d.Size);
 
                 if (result != null && result.Any())
                 {
@@ -207,9 +213,14 @@ namespace Engine
             }
         }
 
-        private IEnumerable<Duplicate[]> CascadeCompare(Duplicate[] duplicates, IEnumerable<IHashCalculator> hashers)
+        /// <summary>
+        /// Checks if group contains duplicates or groups of duplicates.
+        /// Input: Group of file entries with same size.
+        /// Output: Zero or multiple groups of duplicates with same hash.
+        /// </summary>
+        private IEnumerable<Duplicate[]> CascadeCompare(FileEntry[] entries, IEnumerable<IHashCalculator> hashers)
         {
-            IEnumerable<Duplicate[]> currentResult = new List<Duplicate[]>() { duplicates };
+            IEnumerable<Duplicate[]> currentResult = new List<Duplicate[]>() { entries.Select(e => new Duplicate(e.FullName, e.Size, e.LastWriteTimeUtc)).ToArray() };
             foreach (var hasher in hashers)
             {
                 var innerResult = new List<Duplicate[]>();
@@ -229,7 +240,7 @@ namespace Engine
             foreach (var duplicate in duplicates)
             {
                 var hash = hasher.ComputeHash(duplicate);
-                duplicate.Hash = hash == null ? null : Convert.ToBase64String(hash); // todo change to use byte later
+                duplicate.Hash = hash;
             }
 
             var grouped = duplicates
@@ -242,8 +253,14 @@ namespace Engine
         /// <summary>
         /// Calculate items that can be resolved with given trash and keep folders.
         /// </summary>
-        public IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null)
+        public IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null, Action<ProgressKind> progressUpdateCallback = null)
         {
+            this.progressUpdateCallback = progressUpdateCallback ?? (s => { });
+            if (!this.duplicates.Results.Any())
+            {
+                throw new InvalidOperationException("No duplicates have been loaded yet");
+            }
+
             this.Report(WorkState.Marking);
             var deletions = new List<string>();
             try
@@ -343,6 +360,7 @@ namespace Engine
 
         public async Task<IEnumerable<Exception>> DeleteItemsAsync(IEnumerable<string> toDelete, IProgress<(int total, int processed, string currentFile)> progressCallback, CancellationToken cancellationToken)
         {
+            this.progressUpdateCallback = s => { }; // todo cleanup later, should use per method callback, not global
             var errors = new List<Exception>();
             this.Report(WorkState.Deleting);    // todo get rid of reporting later
             var totalFiles = toDelete.Count();
@@ -468,13 +486,13 @@ namespace Engine
                     var newPath = GetFilenameWithoutConflicts(file, targetFolderPath, targetFolderFiles);
                     targetFolderFiles.Add(newPath);
                     moves.Add((file, newPath));
-                }                
+                }
             }
 
             return moves;
         }
 
-        protected static IEnumerable<(string source, string destination)> CalculateFoldersToMove(string targetFolderPath, IEnumerable<string> affectedFolders,  IFileAccessor fileAccessor)
+        protected static IEnumerable<(string source, string destination)> CalculateFoldersToMove(string targetFolderPath, IEnumerable<string> affectedFolders, IFileAccessor fileAccessor)
         {
             // build a list of what exists in target folder (subfolders)
             var targetFolderSubfolders = fileAccessor.EnumerateDirectories(targetFolderPath)
@@ -520,7 +538,7 @@ namespace Engine
         private static string GetDirectoryNameWithoutConflicts(string subfolder, string targetFolderPath, List<string> targetFolderSubfolders)
         {
             var subfolderName = Path.GetDirectoryName(subfolder.AddDirSeparator())
-                .Split(new char[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
                 .Last();
             var newPath = Path.Combine(targetFolderPath, subfolderName).AddDirSeparator();
             int counter = 1;
@@ -589,8 +607,8 @@ namespace Engine
                     this.Report("Moving folder " + processed + " of " + total, null, total, processed);   // todo get rid of reporting later
                     progressCallback.Report((total, processed, folder.source));
 
-                    try 
-                    { 
+                    try
+                    {
                         this.fileAccessor.MoveDirectory(folder.source, folder.destination);
                     }
                     catch (Exception ex)
@@ -600,13 +618,18 @@ namespace Engine
 
                     processed++;
                 }
-            } 
-            
+            }
+
             progressCallback.Report((total, processed, null));
 
             Report(WorkState.Iddle);
 
             return exceptions;
+        }
+
+        public void Dispose()
+        {
+            this.ClearState();
         }
     }
 }

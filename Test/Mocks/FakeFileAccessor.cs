@@ -24,7 +24,7 @@ namespace Test
 
         public void SetupDirectories(params (string parentDirectory, string[] subdirectoryNames)[] directories)
         {
-            _directories = directories.ToDictionary(d => d.parentDirectory, v => v.subdirectoryNames.Select(s => Path.Combine(v.parentDirectory, s)).ToArray());
+            _directories = directories.ToDictionary(d => d.parentDirectory.AddDirSeparator(), v => v.subdirectoryNames.Select(s => Path.Combine(v.parentDirectory, s).AddDirSeparator()).ToArray());
         }
 
         public IEnumerable<string> EnumerateFiles(string[] paths, string filter, bool recursive)
@@ -43,9 +43,9 @@ namespace Test
             _deletedFiles.Add(item);
         }
 
-        public (string FullName, long Length, DateTime LastWriteTimeUtc) GetFileInfo(string file)
+        public FileEntry GetFileInfo(string file)
         {
-            return (file, _files[file].LongLength, new DateTime(2000, 4, 1));
+            return new FileEntry(file, _files[file].LongLength, new DateTime(2000, 4, 1));
         }
 
         public byte[] GetFile(string file)
@@ -60,7 +60,7 @@ namespace Test
 
         public IEnumerable<string> EnumerateDirectories(string folderPath)
         {
-            return _directories[folderPath];
+            return _directories[folderPath.AddDirSeparator()];
         }
 
         public void MoveFile(string source, string destination)

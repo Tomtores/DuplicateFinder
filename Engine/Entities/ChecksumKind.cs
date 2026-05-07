@@ -1,4 +1,4 @@
-﻿namespace EnginePlugins.Cache
+﻿namespace Engine.Entities
 {
     public enum ChecksumKind
     {

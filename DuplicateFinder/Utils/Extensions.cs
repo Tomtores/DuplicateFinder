@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace DuplicateFinder
 {
@@ -19,19 +18,6 @@ namespace DuplicateFinder
         public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> input)
         {
             return input ?? Enumerable.Empty<T>();
-        }
-
-        public static string ShowFolderDialog(string lastPath)
-        {
-            var dialog = new FolderBrowserDialog();
-            dialog.ShowNewFolderButton = false;
-            dialog.SelectedPath = lastPath;
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                return dialog.SelectedPath;
-            }
-
-            return null;
         }
     }
 }

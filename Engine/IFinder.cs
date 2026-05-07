@@ -19,7 +19,7 @@ namespace Engine
         /// <summary>
         /// Calculate items that can be resolved with given trash and keep folders.
         /// </summary>
-        IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null);
+        IEnumerable<string> CalculateFilesToDelete(IEnumerable<string> trashList = null, IEnumerable<string> keepList = null, Action<ProgressKind> progressUpdateCallback = null);
 
         /// <summary>
         /// Deletes given files from disk and duplicate list and trims orphaned entries asynchronously.

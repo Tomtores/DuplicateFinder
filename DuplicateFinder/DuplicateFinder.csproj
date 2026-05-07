@@ -70,6 +70,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Commands\MarkTrashAction.cs" />
+    <Compile Include="Enums\LogLevel.cs" />
     <Compile Include="Forms\MergeForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -125,7 +126,9 @@
     </Compile>
     <Compile Include="Utils\Logger.cs" />
     <Compile Include="Utils\SecurityTool.cs" />
+    <Compile Include="Utils\SettingsFileAccessor.cs" />
     <Compile Include="Utils\SortRecordsFilter.cs" />
+    <Compile Include="Utils\Utilities.cs" />
     <EmbeddedResource Include="Forms\ConfigPanel.resx">
       <DependentUpon>ConfigPanel.cs</DependentUpon>
     </EmbeddedResource>

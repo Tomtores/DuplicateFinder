@@ -11,24 +11,22 @@ namespace Engine.HashCalculators
     /// </summary>
     internal class MD5_Hasher : IHashCalculator
     {
-        public readonly string algorithm;
         private readonly Guid? salt;
         private readonly ILogger logger;
 
-        public MD5_Hasher(string md5AlgorithName = null, Guid? salt = null, ILogger logger = null)
+        public MD5_Hasher(Guid? salt, ILogger logger)
         {
-            this.algorithm = md5AlgorithName;
             this.salt = salt;
-            this.logger = logger ?? new NullLogger();
+            this.logger = logger;
         }
 
-        public byte[] ComputeHash(Duplicate duplicate)
+        public Checksum ComputeHash(Duplicate duplicate)
         {
             try
             {
                 using (var file = new FileStream(duplicate.FullName, FileMode.Open, FileAccess.Read))   // todo abstract file access from hashers?
                 {
-                    using (var md5 = string.IsNullOrWhiteSpace(this.algorithm) ? MD5.Create() : MD5.Create(this.algorithm))
+                    using (var md5 = MD5.Create())
                     {
                         byte[] hash;
                         if (salt != null)
@@ -51,7 +49,7 @@ namespace Engine.HashCalculators
                             hash = md5.ComputeHash(file);
                         }
 
-                        return hash;
+                        return new Checksum(ChecksumKind.MD5.ToString("g"), hash);
                     }
                 }
             }

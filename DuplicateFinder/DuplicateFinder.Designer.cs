@@ -57,6 +57,9 @@
             this.markExtraCopiesWithinFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.browse_many_btn = new System.Windows.Forms.Button();
             this.pauseBtn = new System.Windows.Forms.Button();
+            this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveSearchFolderListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.loadSearchFolderListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -252,6 +255,7 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fileToolStripMenuItem,
             this.optionsToolStripMenuItem,
             this.actionsToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
@@ -311,6 +315,29 @@
             this.pauseBtn.Text = "Pause";
             this.pauseBtn.UseVisualStyleBackColor = true;
             this.pauseBtn.Click += new System.EventHandler(this.pauseBtn_Click);
+            // 
+            // fileToolStripMenuItem
+            // 
+            this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.saveSearchFolderListToolStripMenuItem,
+            this.loadSearchFolderListToolStripMenuItem});
+            this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
+            this.fileToolStripMenuItem.Text = "File";
+            // 
+            // saveSearchFolderListToolStripMenuItem
+            // 
+            this.saveSearchFolderListToolStripMenuItem.Name = "saveSearchFolderListToolStripMenuItem";
+            this.saveSearchFolderListToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
+            this.saveSearchFolderListToolStripMenuItem.Text = "Save search folder list";
+            this.saveSearchFolderListToolStripMenuItem.Click += new System.EventHandler(this.saveSearchFolderListToolStripMenuItem_Click);
+            // 
+            // loadSearchFolderListToolStripMenuItem
+            // 
+            this.loadSearchFolderListToolStripMenuItem.Name = "loadSearchFolderListToolStripMenuItem";
+            this.loadSearchFolderListToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
+            this.loadSearchFolderListToolStripMenuItem.Text = "Load search folder list";
+            this.loadSearchFolderListToolStripMenuItem.Click += new System.EventHandler(this.loadSearchFolderListToolStripMenuItem_Click);
             // 
             // DuplicateFinder
             // 
@@ -376,6 +403,9 @@
         private FolderList trashList;
         private FolderList keepList;
         private System.Windows.Forms.Button pauseBtn;
+        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveSearchFolderListToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem loadSearchFolderListToolStripMenuItem;
     }
 }
 

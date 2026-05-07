@@ -13,20 +13,21 @@ namespace Engine.HashCalculators
         private readonly Guid? _salt;
         private readonly ILogger _logger;
 
-        public CRC32_Hasher(Guid? salt = null, ILogger logger = null)
+        public CRC32_Hasher(Guid? salt, ILogger logger)
         {
             _salt = salt;
-            _logger = logger ?? new NullLogger();
+            _logger = logger;
         }
 
-        public byte[] ComputeHash(Duplicate duplicate)
+        public Checksum ComputeHash(Duplicate duplicate)
         {
             try
             {
                 using (var file = new FileStream(duplicate.FullName, FileMode.Open, FileAccess.Read))
                 {
                     var hash = CRC32Calculator.Calculate(file, _salt);
-                    return BitConverter.GetBytes(hash);
+                    var bytes = BitConverter.GetBytes(hash);
+                    return new Checksum(ChecksumKind.CRC32.ToString("g"), bytes);
                 }
             }
             catch (Exception e)

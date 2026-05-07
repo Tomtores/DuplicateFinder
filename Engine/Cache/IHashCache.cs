@@ -1,4 +1,4 @@
-﻿using EnginePlugins.Cache;
+﻿using Engine.Entities;
 using System;
 
 namespace Plugins.Cache

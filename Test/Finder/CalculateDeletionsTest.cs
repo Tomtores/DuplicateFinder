@@ -4,11 +4,12 @@ using System.Linq;
 using Engine.Entities;
 using Engine.FileEnumerators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Test.Mocks;
 
-namespace Test.Oldtests
+namespace Test.Finder
 {
     [TestClass]
-    public class FinderTest
+    public class CalculateDeletionsTest
     {
         private const string Trash = @"X:\trashPath";
         private const string Other = @"Y:\otherPath";
@@ -26,12 +27,10 @@ namespace Test.Oldtests
 
         private FinderProxy Finder { get; set; }
 
-        public FinderTest()
+        public CalculateDeletionsTest()
         {
-            this.Finder = new FinderProxy(new StandardFileEnumerator(), new FakeHasher(null));
+            Finder = new FinderProxy(new StandardFileEnumerator(), new FakeHasher(null));
         }
-
-        #region deletion List
 
         [TestMethod]
         public void CalculateDeletions_GivenListWithOneDupePair_WhereOneDupeIsInTrashList_ShouldreturnOneDupe()
@@ -168,8 +167,6 @@ namespace Test.Oldtests
             Assert.AreEqual(outside.FullName, result.First());        
         }
 
-        #endregion
-
         [TestMethod]
         public void AfterDelete_GivenSinglePair_WithOneItemleft_ShouldReturnEmpty()
         {
@@ -178,7 +175,7 @@ namespace Test.Oldtests
             var list = MakeList(item1, item2);
             var delitems = new List<string> { item1.FullName };
 
-            var result = this.Finder.Test_TrimDeleted(list, delitems);
+            var result = Finder.Test_TrimDeleted(list, delitems);
 
             Assert.AreEqual(0, result.Count());
         }
@@ -192,7 +189,7 @@ namespace Test.Oldtests
             var list = MakeList(item1, item2, item3);
             var delitems = new List<string> { item1.FullName };
 
-            var result = this.Finder.Test_TrimDeleted(list, delitems);
+            var result = Finder.Test_TrimDeleted(list, delitems);
 
             var first = result.First();
             Assert.AreEqual(2, first.Count());

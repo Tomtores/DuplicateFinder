@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Engine.FileEnumerators
 {
@@ -21,9 +20,10 @@ namespace Engine.FileEnumerators
         /// </summary>
         IEnumerable<string> EnumerateDirectories(string folderPath);
 
-        (string FullName, long Length, DateTime LastWriteTimeUtc) GetFileInfo(string file);
+        FileEntry GetFileInfo(string file);
         
         void MoveFile(string source, string destination);
+
         void MoveDirectory(string source, string destination);
     }
 }

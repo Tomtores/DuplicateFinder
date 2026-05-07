@@ -1,5 +1,13 @@
 todo next
 
+
+-3. cache converter when switching to binary!
+-2. check if file accessor/enumerator can convert fileinfo to fileentry as soon as possible, not at end of whole enumeration method.
+-1. instricude async to finder methods
+0. rework the thread into cancel/pause tokens
+1. introduce binary to cache file
+
+todo trim should remove the unused crc32/md5 hash based on program setting
 0. change cache format to binary
 1. Make finder methods async and get rid of background worker
 
@@ -7,11 +15,10 @@ todo next
 
 add: quick filter for the result list
 
-scan folder does not exist should say which folder!
 
 warn: what if merge folders has other folder with duplicates that are dupes of something outside target and other source folders? do they get moved to target? deleted?
 
-usability - saving search folder sets (and loading) -> useful for scanning multiple known sets of data
+
 
 1. folder comparison mode
 2. fix thread
@@ -88,7 +95,6 @@ delete empty folders tool?
 smaller compact view for deletion list?
 
 
-need program icon
 
 
 TEST

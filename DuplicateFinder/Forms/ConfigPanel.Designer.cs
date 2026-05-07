@@ -46,6 +46,8 @@
             this.deletCacheBtn = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
             this.trimCache = new System.Windows.Forms.Button();
+            this.logLevelCombo = new System.Windows.Forms.ComboBox();
+            this.label4 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailSize)).BeginInit();
             this.SuspendLayout();
             // 
@@ -235,11 +237,30 @@
             this.trimCache.UseVisualStyleBackColor = true;
             this.trimCache.Click += new System.EventHandler(this.trimCache_Click);
             // 
+            // logLevelCombo
+            // 
+            this.logLevelCombo.FormattingEnabled = true;
+            this.logLevelCombo.Location = new System.Drawing.Point(283, 10);
+            this.logLevelCombo.Name = "logLevelCombo";
+            this.logLevelCombo.Size = new System.Drawing.Size(106, 21);
+            this.logLevelCombo.TabIndex = 46;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(227, 13);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(50, 13);
+            this.label4.TabIndex = 47;
+            this.label4.Text = "Log level";
+            // 
             // ConfigPanel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(401, 262);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.logLevelCombo);
             this.Controls.Add(this.trimCache);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.deletCacheBtn);
@@ -286,5 +307,7 @@
         private System.Windows.Forms.Button deletCacheBtn;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Button trimCache;
+        private System.Windows.Forms.ComboBox logLevelCombo;
+        private System.Windows.Forms.Label label4;
     }
 }

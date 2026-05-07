@@ -1,6 +1,5 @@
 ﻿using Engine.Entities;
 using Engine.HashCalculators;
-using EnginePlugins.Cache;
 
 namespace Plugins.Cache
 {
@@ -17,20 +16,25 @@ namespace Plugins.Cache
             this.hashName = hashName;
         }
 
-        public byte[] ComputeHash(Duplicate duplicate)
+        public Checksum ComputeHash(Duplicate duplicate)
         {
             // get hash from cache
             var cached = cache.GetHash(duplicate.FullName, duplicate.Size, hashName, duplicate.Timestamp);
             if (cached != null)
             {
-                return cached;
+                return new Checksum(hashName.ToString("g"), cached);
             }
 
             var hash = this.decoratedObject.ComputeHash(duplicate);
-            
-            cache.Store(duplicate.FullName, duplicate.Size, hashName, hash, duplicate.Timestamp);
+
+            if (hash != null && hash.Value?.Length > 0)
+            {
+                cache.Store(duplicate.FullName, duplicate.Size, hashName, hash.Value, duplicate.Timestamp);
+            }
 
             return hash;
         }
+
+        public byte[] PeekHash(Duplicate duplicate) => cache.GetHash(duplicate.FullName, duplicate.Size, hashName, duplicate.Timestamp);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.VisualBasic.FileIO;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -34,10 +33,10 @@ namespace Engine.FileEnumerators
             return result.Distinct();
         }
 
-        public (string FullName, long Length, DateTime LastWriteTimeUtc) GetFileInfo(string file)
+        public FileEntry GetFileInfo(string file)
         {
             var info = new FileInfo(file);
-            return (info.FullName, info.Length, info.LastWriteTimeUtc);
+            return new FileEntry(info.FullName, info.Length, info.LastWriteTimeUtc);
         }
 
         public void MoveDirectory(string source, string destination)

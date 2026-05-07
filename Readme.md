@@ -210,3 +210,9 @@ v2026.05.01 - Cache storage improvements. Files smaller than 4kb are no longer c
 			  Added basic logging. 
 			  Hashers now operate on byte arrays internally instead of strings.
 			  Salt is now random per program installation and is generated on first cache enable.
+
+v2026.05.06 - Added option to set logging level.
+			  Added option to save and load list of scan folders - if you happen to switch between sets of locations often, this is an option for you.
+			  Missing scan folder error now tells you which folder is missing.
+			  Hashing improvements. Changed cache sizing policy - apparently not caching small files is really bad for performance, so cache stores hash for all the files now. Reduced some hash sizes. This will cause your existing cache file to be wiped.
+			  Unit tests are cleaned and now pass :-).

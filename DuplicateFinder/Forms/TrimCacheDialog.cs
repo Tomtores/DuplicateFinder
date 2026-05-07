@@ -10,11 +10,13 @@ namespace DuplicateFinder.Forms
     {
         private readonly ILogger logger;
         private readonly Guid? installationSalt;
+        private readonly string cachePath;
         Thread trimmer;        
 
-        public TrimCacheDialog(Guid? installationSalt, ILogger logger)
+        public TrimCacheDialog(string cachePath, Guid? installationSalt, ILogger logger)
         {
             this.installationSalt = installationSalt;
+            this.cachePath = cachePath;
             this.logger = logger;
             InitializeComponent();
         }
@@ -33,7 +35,7 @@ namespace DuplicateFinder.Forms
         {
             try
             {
-                FinderFactory.TrimCache(UpdateProgress, installationSalt, logger); // this will hang by design
+                FinderFactory.TrimCache(cachePath, UpdateProgress, installationSalt, logger); // this will hang by design
             }
             catch (ThreadAbortException)
             {
